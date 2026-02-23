@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSE - Professional Invoice Manager</title>
+    <title>DSE - Bilingual Professional System</title>
     <style>
         :root { --gold: #c5a021; --black: #1a1a1a; --danger: #e74c3c; --success: #28a745; --blue: #3498db; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 10px; background-color: #f0f2f5; font-size: 13px; }
         
-        /* لوحات التحكم */
         .admin-panel { 
             max-width: 1050px; margin: 10px auto; background: #fff; padding: 15px; 
             border-radius: 12px; border-top: 4px solid var(--gold); box-shadow: 0 4px 15px rgba(0,0,0,0.1);
@@ -16,7 +15,7 @@
         h3 { margin-top:0; color:var(--gold); border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 1rem; }
         .form-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
         .form-group { flex: 1; min-width: 140px; display: flex; flex-direction: column; }
-        label { font-size: 0.7rem; font-weight: bold; margin-bottom: 3px; }
+        label { font-size: 0.7rem; font-weight: bold; margin-bottom: 3px; color: #555; }
         input, select { padding: 8px; border: 1px solid #ddd; border-radius: 5px; font-size: 0.85rem; }
         
         .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; transition: 0.3s; }
@@ -25,12 +24,10 @@
         .btn-print { background: var(--black); color: white; }
         .btn-save-settings { background: var(--gold); color: white; }
 
-        /* جدول التحكم في الأصناف */
         .edit-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; }
         .edit-table th, .edit-table td { border: 1px solid #eee; padding: 6px; text-align: center; }
         .action-btn { padding: 4px 8px; font-size: 11px; margin: 0 2px; }
 
-        /* الفاتورة للطباعة */
         .invoice-card { 
             width: 210mm; min-height: 297mm; margin: 20px auto; background: #fff; padding: 10mm; 
             box-sizing: border-box; position: relative; border: 1px solid #eee;
@@ -46,9 +43,9 @@
         .inv-subject { text-align: center; margin: 15px 0; }
         .inv-subject h2 { border: 1px solid #000; display: inline-block; padding: 3px 30px; font-size: 15px; background: #fafafa; margin:0; }
 
-        .print-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; }
-        .print-table th { background: #f2f2f2; border: 1px solid #ccc; padding: 8px; }
-        .print-table td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        .print-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; table-layout: fixed; }
+        .print-table th { background: #f2f2f2; border: 1px solid #ccc; padding: 8px; font-weight: bold; }
+        .print-table td { border: 1px solid #ccc; padding: 8px; text-align: center; word-wrap: break-word; }
 
         @media print {
             .admin-panel, .no-print { display: none !important; }
@@ -61,35 +58,35 @@
 <body>
 
     <div class="admin-panel no-print" dir="rtl">
-        <h3>1. إعدادات الهوية والبيانات / Company & Logo Settings</h3>
+        <h3>1. إعدادات الهوية / Identity Settings</h3>
         <div class="form-row">
             <div class="form-group" style="flex: 2;">
-                <label>نص الشعار (بدل الصورة) / Logo Text</label>
+                <label>نص الشعار / Logo Text (EN/AR)</label>
                 <input type="text" id="set_logo_text" value="DSE" oninput="applySettings()">
             </div>
             <div class="form-group">
-                <label>لون نص الشعار / Logo Color</label>
+                <label>اللون / Color</label>
                 <input type="color" id="set_logo_color" value="#c5a021" oninput="applySettings()">
             </div>
             <div class="form-group">
-                <label>حجم الخط / Font Size</label>
+                <label>الحجم / Size</label>
                 <input type="number" id="set_logo_size" value="24" oninput="applySettings()">
             </div>
             <div class="form-group">
-                <label>رفع صورة لوجو / Upload Logo</label>
+                <label>الصورة / Logo Image</label>
                 <input type="file" accept="image/*" onchange="updateLogo(event)">
             </div>
         </div>
         <div class="form-row">
-            <div class="form-group"><label>اسم الشركة (عربي)</label><input type="text" id="set_name_ar" value="ديجيتال سبيس للإلكترونيات ش.ذ.م.م"></div>
-            <div class="form-group"><label>Company Name (EN)</label><input type="text" id="set_name_en" value="Digital Space Electronics L.L.C"></div>
+            <div class="form-group"><label>الاسم (عربي) / Name (AR)</label><input type="text" id="set_name_ar" value="ديجيتال سبيس للإلكترونيات ش.ذ.م.م"></div>
+            <div class="form-group"><label>الاسم (إنجليزي) / Name (EN)</label><input type="text" id="set_name_en" value="Digital Space Electronics L.L.C"></div>
             <div class="form-group"><label>الرقم الضريبي / TRN</label><input type="text" id="set_trn" value="10001772444400003"></div>
         </div>
-        <button class="btn btn-save-settings" onclick="saveAllSettings()">حفظ الإعدادات بالكامل / Save All Settings</button>
+        <button class="btn btn-save-settings" onclick="saveAllSettings()">حفظ الإعدادات / Save Settings</button>
     </div>
 
     <div class="admin-panel no-print" dir="rtl">
-        <h3>2. بيانات العميل والأصناف / Client & Items</h3>
+        <h3>2. البيانات والأصناف / Data & Items</h3>
         <div class="form-row">
             <div class="form-group"><label>العميل / Customer</label><input type="text" id="in_name" oninput="syncData()"></div>
             <div class="form-group"><label>الهاتف / Phone</label><input type="text" id="in_phone" oninput="syncData()"></div>
@@ -104,15 +101,15 @@
             <div class="form-group"><label>الضريبة / Tax</label><select id="p_vat"><option value="0.05">5%</option><option value="0">0%</option></select></div>
         </div>
         <div class="form-row">
-            <button class="btn btn-add" id="add-btn" onclick="addItem()">إضافة صنف / Add Item</button>
-            <button class="btn btn-update-item" id="update-item-btn" onclick="saveItemEdit()">حفظ التعديل على السطر / Save Edit</button>
-            <button class="btn btn-print" onclick="window.print()">طباعة الفاتورة / Print</button>
-            <button class="btn" style="background:#8e44ad; color:white;" onclick="location.reload()">فاتورة جديدة / New</button>
+            <button class="btn btn-add" id="add-btn" onclick="addItem()">إضافة / Add</button>
+            <button class="btn btn-update-item" id="update-item-btn" onclick="saveItemEdit()">حفظ التعديل / Save Edit</button>
+            <button class="btn btn-print" onclick="window.print()">طباعة / Print</button>
+            <button class="btn" style="background:#8e44ad; color:white;" onclick="location.reload()">جديد / New</button>
         </div>
 
         <table class="edit-table">
             <thead>
-                <tr><th>م</th><th>الوصف</th><th>السعر</th><th>الضريبة</th><th>إجراءات</th></tr>
+                <tr><th>م / No.</th><th>الوصف / Desc</th><th>السعر / Price</th><th>الضريبة / Tax %</th><th>إجراء / Action</th></tr>
             </thead>
             <tbody id="edit_body"></tbody>
         </table>
@@ -124,7 +121,7 @@
                 <h1 id="out_comp_en">Digital Space Electronics L.L.C</h1>
                 <p id="out_comp_ar">ديجيتال سبيس للإلكترونيات ش.ذ.م.م</p>
                 <p id="out_comp_addr">Shop 7 Obaid EL Helo Bldg., Bur-Dubai, Dubai, UAE</p>
-                <p>Ph: <span id="out_comp_ph">+971-4-3594774</span> | TRN: <span id="out_comp_trn">10001772444400003</span></p>
+                <p>Phone / هاتف: <span id="out_comp_ph">+971-4-3594774</span> | TRN / ضريبي: <span id="out_comp_trn">10001772444400003</span></p>
             </div>
             <div class="logo-box" id="logo-container">
                 <img id="logo-img" src="" style="display: none;">
@@ -132,31 +129,41 @@
             </div>
         </div>
         <div class="inv-subject"><h2>فاتورة ضريبية / TAX INVOICE</h2></div>
-        <div class="client-info-grid" style="display:flex; justify-content:space-between; font-size:12px;">
+        <div class="client-info-grid" style="display:flex; justify-content:space-between; font-size:12px; margin-bottom: 10px;">
             <div style="width: 55%;">
-                <p><strong>To:</strong> <span id="out_name">...................</span></p>
-                <p><strong>Phone:</strong> <span id="out_phone">...................</span></p>
+                <p><strong>To / السيد:</strong> <span id="out_name">...................</span></p>
+                <p><strong>Phone / هاتف:</strong> <span id="out_phone">...................</span></p>
             </div>
             <div style="width: 40%; text-align: left;" dir="ltr">
-                <p><strong>Inv No:</strong> <span id="inv_no_display">1001</span></p>
-                <p><strong>Date:</strong> <span id="out_date"></span></p>
+                <p><strong>Inv No / رقم:</strong> <span id="inv_no_display">1001</span></p>
+                <p><strong>Date / تاريخ:</strong> <span id="out_date"></span></p>
             </div>
         </div>
         <table class="print-table">
             <thead>
-                <tr><th>No.</th><th>Code</th><th>Description</th><th>Qty</th><th>Price</th><th>Tax</th><th>Total</th></tr>
+                <tr>
+                    <th style="width:35px;">م<br>No.</th>
+                    <th style="width:70px;">كود<br>Code</th>
+                    <th>الوصف<br>Description</th>
+                    <th style="width:40px;">كمية<br>Qty</th>
+                    <th style="width:70px;">سعر<br>Price</th>
+                    <th style="width:45px;">ضريبة<br>Tax</th>
+                    <th style="width:85px;">إجمالي<br>Total</th>
+                </tr>
             </thead>
             <tbody id="print_body"></tbody>
         </table>
-        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
-            <div style="width: 60%; font-size: 10px; color: #555;">
-                <p>- Received in good condition / استلمت بحالة جيدة.</p>
-                <br><span>Stamp & Signature / التوقيع: ____________</span>
+        <div style="display: flex; justify-content: space-between; margin-top: 15px;">
+            <div style="width: 58%; font-size: 10px; color: #555;">
+                <p><strong>الشروط / Terms:</strong></p>
+                <p>- Goods once sold returnable within 3 days / البضاعة تستبدل خلال 3 أيام.</p>
+                <p>- Received in good condition / استلمت البضاعة بحالة جيدة.</p>
+                <br><span>Stamp & Signature / الختم والتوقيع: ____________</span>
             </div>
-            <div style="width: 35%;">
-                <div style="display:flex; justify-content:space-between"><span>Sub Total</span> <span id="sub_total">0.00</span></div>
-                <div style="display:flex; justify-content:space-between"><span>VAT 5%</span> <span id="vat_total">0.00</span></div>
-                <div style="display:flex; justify-content:space-between; font-weight:bold; border-top:1px solid #000; font-size:14px;"><span>Net Amount</span> <span id="net_total">0.00</span></div>
+            <div style="width: 38%;">
+                <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>المجموع / Sub Total</span> <span id="sub_total">0.00</span></div>
+                <div style="display:flex; justify-content:space-between; padding:3px 0;"><span>الضريبة / VAT 5%</span> <span id="vat_total">0.00</span></div>
+                <div style="display:flex; justify-content:space-between; font-weight:bold; border-top:1.5px solid #000; font-size:13px; padding:5px 0;"><span>الصافي / Net Amount</span> <span id="net_total">0.00</span></div>
             </div>
         </div>
     </div>
@@ -188,7 +195,6 @@
             const txt = document.getElementById('set_logo_text').value;
             const color = document.getElementById('set_logo_color').value;
             const size = document.getElementById('set_logo_size').value;
-            
             const display = document.getElementById('logo-text-display');
             display.innerText = txt;
             display.style.color = color;
@@ -208,7 +214,7 @@
             };
             localStorage.setItem('dse_full_settings', JSON.stringify(s));
             loadAllSettings();
-            alert("تم حفظ الإعدادات!");
+            alert("تم الحفظ بنجاح / Saved Successfully");
         }
 
         function loadAllSettings() {
@@ -233,13 +239,8 @@
         function addItem() {
             const desc = document.getElementById('p_desc').value;
             const price = parseFloat(document.getElementById('p_price').value);
-            if(!desc || isNaN(price)) return alert("أدخل البيانات");
-            
-            items.push({
-                desc, code: document.getElementById('p_code').value || '-',
-                qty: parseFloat(document.getElementById('p_qty').value) || 1,
-                price, vatRate: parseFloat(document.getElementById('p_vat').value)
-            });
+            if(!desc || isNaN(price)) return alert("أكمل البيانات / Complete Data");
+            items.push({ desc, code: document.getElementById('p_code').value || '-', qty: parseFloat(document.getElementById('p_qty').value) || 1, price, vatRate: parseFloat(document.getElementById('p_vat').value) });
             renderAll();
             clearInputRow();
         }
@@ -252,19 +253,12 @@
             document.getElementById('p_qty').value = item.qty;
             document.getElementById('p_price').value = item.price;
             document.getElementById('p_vat').value = item.vatRate;
-
             document.getElementById('add-btn').style.display = 'none';
             document.getElementById('update-item-btn').style.display = 'inline-block';
         }
 
         function saveItemEdit() {
-            items[editItemIndex] = {
-                desc: document.getElementById('p_desc').value,
-                code: document.getElementById('p_code').value,
-                qty: parseFloat(document.getElementById('p_qty').value),
-                price: parseFloat(document.getElementById('p_price').value),
-                vatRate: parseFloat(document.getElementById('p_vat').value)
-            };
+            items[editItemIndex] = { desc: document.getElementById('p_desc').value, code: document.getElementById('p_code').value, qty: parseFloat(document.getElementById('p_qty').value), price: parseFloat(document.getElementById('p_price').value), vatRate: parseFloat(document.getElementById('p_vat').value) };
             editItemIndex = -1;
             document.getElementById('add-btn').style.display = 'inline-block';
             document.getElementById('update-item-btn').style.display = 'none';
@@ -272,41 +266,26 @@
             clearInputRow();
         }
 
-        function deleteItem(index) {
-            items.splice(index, 1);
-            renderAll();
-        }
+        function deleteItem(index) { items.splice(index, 1); renderAll(); }
 
         function renderAll() {
             const pBody = document.getElementById('print_body');
             const eBody = document.getElementById('edit_body');
             pBody.innerHTML = ''; eBody.innerHTML = '';
             let sub = 0; let vat = 0;
-
             items.forEach((item, i) => {
                 const total = item.qty * item.price;
                 const itemVat = total * item.vatRate;
                 sub += total; vat += itemVat;
-
                 pBody.innerHTML += `<tr><td>${i+1}</td><td>${item.code}</td><td style="text-align:right">${item.desc}</td><td>${item.qty}</td><td>${item.price.toFixed(2)}</td><td>${item.vatRate>0?'5%':'0%'}</td><td>${(total+itemVat).toFixed(2)}</td></tr>`;
-                
-                eBody.innerHTML += `<tr><td>${i+1}</td><td>${item.desc}</td><td>${item.price}</td><td>${item.vatRate*100}%</td><td>
-                    <button class="btn action-btn" style="background:var(--blue); color:white" onclick="startEditItem(${i})">تعديل</button>
-                    <button class="btn action-btn" style="background:var(--danger); color:white" onclick="deleteItem(${i})">حذف</button>
-                </td></tr>`;
+                eBody.innerHTML += `<tr><td>${i+1}</td><td>${item.desc}</td><td>${item.price}</td><td>${item.vatRate*100}%</td><td><button class="btn action-btn" style="background:var(--blue); color:white" onclick="startEditItem(${i})">تعديل/Edit</button><button class="btn action-btn" style="background:var(--danger); color:white" onclick="deleteItem(${i})">حذف/Del</button></td></tr>`;
             });
-
             document.getElementById('sub_total').innerText = sub.toFixed(2);
             document.getElementById('vat_total').innerText = vat.toFixed(2);
             document.getElementById('net_total').innerText = (sub + vat).toFixed(2);
         }
 
-        function clearInputRow() {
-            document.getElementById('p_desc').value = '';
-            document.getElementById('p_code').value = '';
-            document.getElementById('p_qty').value = '1';
-            document.getElementById('p_price').value = '';
-        }
+        function clearInputRow() { document.getElementById('p_desc').value = ''; document.getElementById('p_code').value = ''; document.getElementById('p_qty').value = '1'; document.getElementById('p_price').value = ''; }
 
         window.onbeforeprint = () => { localStorage.setItem('dse_inv_no', document.getElementById('in_inv_no').value); };
     </script>
