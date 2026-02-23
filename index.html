@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>DSE - Tax Invoice System</title>
+    <style>
+        :root { --primary-color: #c5a021; --dark-color: #1a1a1a; }
+        body { font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f0f0; color: #333; }
+        
+        /* ضبط مقاس الفاتورة لتكون أصغر من A4 الكاملة وتتمركز في الوسط */
+        .invoice-box { 
+            max-width: 190mm; /* أقل من عرض A4 (210mm) لتفادي الحواف */
+            margin: auto; 
+            background: #fff; 
+            padding: 15mm; 
+            border: 1px solid #eee; 
+            box-shadow: 0 0 10px rgba(0,0,0,0.05); 
+        }
+
+        /* الهيدر ثنائي اللغة */
+        .header { display: flex; justify-content: space-between; border-bottom: 2px solid var(--primary-color); padding-bottom: 10px; margin-bottom: 20px; }
+        .company-info { font-size: 13px; line-height: 1.4; }
+        .company-info h1 { margin: 0; font-size: 20px; color: var(--dark-color); }
+        .logo-box { text-align: left; font-weight: bold; font-size: 24px; color: var(--primary-color); }
+
+        /* عنوان الفاتورة */
+        .invoice-title { text-align: center; margin: 20px 0; }
+        .invoice-title h2 { margin:0; border: 1px solid #000; padding: 5px 20px; background: #f9f9f9; display: inline-block; font-size: 18px; }
+
+        /* بيانات العميل */
+        .client-section { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 14px; }
+        .client-info p { margin: 4px 0; }
+
+        /* الجدول */
+        table { width: 100%; border-collapse: collapse; margin-top: 15px; font-size: 13px; }
+        th { background: #f2f2f2; border: 1px solid #ccc; padding: 8px; color: #333; }
+        td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        .text-right { text-align: right; }
+
+        /* الحسابات */
+        .totals-container { display: flex; justify-content: flex-start; margin-top: 20px; }
+        .totals-table { width: 250px; }
+        .totals-table div { display: flex; justify-content: space-between; padding: 5px; border-bottom: 1px solid #eee; font-size: 14px; }
+        .grand-total { font-weight: bold; background: #f9f9f9; border-bottom: 2px solid var(--dark-color) !important; }
+
+        /* لوحة التحكم (تختفي عند الطباعة) */
+        .no-print { 
+            max-width: 190mm; margin: 0 auto 20px auto; background: #fff; padding: 20px; 
+            border: 2px dashed var(--primary-color); border-radius: 8px; 
+        }
+        .input-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 10px; }
+        .input-row input, .input-row select { padding: 8px; border: 1px solid #ccc; border-radius: 4px; width: 100%; box-sizing: border-box; }
+        label { font-size: 12px; font-weight: bold; display: block; margin-bottom: 4px; }
+        .btn { padding: 10px 20px; border: none; cursor: pointer; font-weight: bold; border-radius: 4px; }
+        .btn-add { background: #28a745; color: white; width: 100%; }
+        .btn-print { background: #1a1a1a; color: white; width: 100%; margin-top: 20px; font-size: 16px; }
+
+        @media print {
+            body { background: white; padding: 0; }
+            .no-print { display: none; }
+            .invoice-box { border: none; box-shadow: none; margin: 0 auto; padding: 10mm; }
+            @page { size: A4; margin: 5mm; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="no-print" dir="rtl">
+        <h3 style="margin-top:0">لوحة التحكم / Control Panel</h3>
+        
+        <div class="input-row">
+            <div>
+                <label>اسم العميل / Customer Name</label>
+                <input type="text" id="in_cust_name" oninput="updateView()">
+            </div>
+            <div>
+                <label>رقم الهاتف / Phone Number</label>
+                <input type="text" id="in_cust_phone" oninput="updateView()">
+            </div>
+            <div>
+                <label>التاريخ / Date</label>
+                <input type="date" id="in_date" oninput="updateView()">
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="input-row" style="grid-template-columns: 1fr 2fr 1fr 1fr;">
+            <div>
+                <label>الكود / Code</label>
+                <input type="text" id="p_code">
+            </div>
+            <div>
+                <label>الوصف / Description</label>
+                <input type="text" id="p_desc">
+            </div>
+            <div>
+                <label>الكمية / Qty</label>
+                <input type="number" id="p_qty" value="1">
+            </div>
+            <div>
+                <label>السعر / Price</label>
+                <input type="number" id="p_price">
+            </div>
+        </div>
+        
+        <div class="input-row">
+            <div>
+                <label>الضريبة / Tax (VAT)</label>
+                <select id="in_vat_option" onchange="calculate()">
+                    <option value="0.05">5% ضريبة / Tax</option>
+                    <option value="0">0% بدون ضريبة / No Tax</option>
+                </select>
+            </div>
+            <div style="grid-column: span 2; display: flex; align-items: flex-end;">
+                <button class="btn btn-add" onclick="addItem()">إضافة المنتج / Add Item</button>
+            </div>
+        </div>
+
+        <button class="btn btn-print" onclick="window.print()">طباعة الفاتورة / Print Invoice</button>
+    </div>
+
+    <div class="invoice-box">
+        <div class="header">
+            <div class="company-info">
+                <h1>Digital Space Electronics L.L.C</h1>
+                <p>ديجيتال سبيس للإلكترونيات ش.ذ.م.م</p>
+                <p>Shop 7 Obaid EL Helo Bldg., Bur-Dubai, Dubai, UAE</p>
+                <p>Phone: +971-4-3594774 | Mobile: +971-50-4509223</p>
+                <p><strong>TRN: 10001772444400003</strong></p>
+            </div>
+            <div class="logo-box">DSE</div>
+        </div>
+
+        <div class="invoice-title">
+            <h2>فاتورة ضريبية <br> TAX INVOICE</h2>
+        </div>
+
+        <div class="client-section">
+            <div class="client-info">
+                <p><strong>إلى السيد / To:</strong> <span id="out_cust_name">---</span></p>
+                <p><strong>هاتف / Phone:</strong> <span id="out_cust_phone">---</span></p>
+            </div>
+            <div class="client-info" style="text-align: left;">
+                <p><strong>التاريخ / Date:</strong> <span id="out_date">---</span></p>
+            </div>
+        </div>
+
+        <table>
+            <thead>
+                <tr>
+                    <th width="10%">الكود<br>Code</th>
+                    <th width="40%">الوصف<br>Description</th>
+                    <th width="10%">الكمية<br>Qty</th>
+                    <th width="20%">سعر الوحدة<br>Unit Price</th>
+                    <th width="20%">الإجمالي<br>Total</th>
+                </tr>
+            </thead>
+            <tbody id="items_table">
+                </tbody>
+        </table>
+
+        <div class="totals-container">
+            <div class="totals-table">
+                <div>
+                    <span>الإجمالي (بدون ضريبة)<br>Sub Total:</span>
+                    <span id="sub_total">0.00</span>
+                </div>
+                <div>
+                    <span>ضريبة (5%)<br>VAT (5%):</span>
+                    <span id="vat_amount">0.00</span>
+                </div>
+                <div class="grand-total">
+                    <span>المجموع الصافي<br>Net Amount:</span>
+                    <span id="final_total">0.00</span>
+                </div>
+            </div>
+        </div>
+
+        <div style="margin-top: 40px; border-top: 1px solid #eee; padding-top: 10px; font-size: 11px; color: #666; display: flex; justify-content: space-between;">
+            <span>الختم والتوقيع / Stamp & Signature</span>
+            <span>استلمت البضاعة بحالة جيدة / Received in good condition</span>
+        </div>
+    </div>
+
+    <script>
+        let items = [];
+
+        function updateView() {
+            document.getElementById('out_cust_name').innerText = document.getElementById('in_cust_name').value || '---';
+            document.getElementById('out_cust_phone').innerText = document.getElementById('in_cust_phone').value || '---';
+            document.getElementById('out_date').innerText = document.getElementById('in_date').value || '---';
+        }
+
+        function addItem() {
+            const code = document.getElementById('p_code').value || '-';
+            const desc = document.getElementById('p_desc').value;
+            const qty = parseFloat(document.getElementById('p_qty').value);
+            const price = parseFloat(document.getElementById('p_price').value);
+
+            if(desc && qty > 0 && price >= 0) {
+                items.push({ code, desc, qty, price });
+                renderTable();
+                document.getElementById('p_code').value = '';
+                document.getElementById('p_desc').value = '';
+                document.getElementById('p_price').value = '';
+            } else {
+                alert("يرجى إدخال الوصف والسعر / Please enter description and price");
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('items_table');
+            tbody.innerHTML = '';
+            items.forEach((item) => {
+                const row = `<tr>
+                    <td>${item.code}</td>
+                    <td class="text-right">${item.desc}</td>
+                    <td>${item.qty}</td>
+                    <td>${item.price.toFixed(2)}</td>
+                    <td>${(item.qty * item.price).toFixed(2)}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+            calculate();
+        }
+
+        function calculate() {
+            let subTotal = items.reduce((sum, item) => sum + (item.qty * item.price), 0);
+            let vatRate = parseFloat(document.getElementById('in_vat_option').value);
+            let vatAmount = subTotal * vatRate;
+            let finalTotal = subTotal + vatAmount;
+
+            document.getElementById('sub_total').innerText = subTotal.toFixed(2);
+            document.getElementById('vat_amount').innerText = vatAmount.toFixed(2);
+            document.getElementById('final_total').innerText = finalTotal.toFixed(2);
+        }
+    </script>
+</body>
+</html>
+
