@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSE - Professional System v3.0</title>
+    <title>DSE - Final Professional System</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     
@@ -23,30 +23,35 @@
         .btn-print { background: var(--black); }
         .btn-save { background: var(--blue); }
 
-        /* تنسيق الفاتورة الأصلي */
+        /* جدول تعديل الأسطر قبل الحفظ */
+        .edit-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; background: #fff; }
+        .edit-table th { background: #f8f9fa; border: 1px solid #ddd; padding: 8px; }
+        .edit-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+
+        /* تنسيق الفاتورة طبق الأصل من الصورة */
         .invoice-card { width: 210mm; min-height: 297mm; margin: 20px auto; background: #fff; padding: 10mm; box-sizing: border-box; border: 1px solid #eee; }
-        .inv-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin-bottom: 15px; }
-        .comp-data { flex: 2; text-align: left; dir: ltr; }
-        .comp-data h1 { margin: 0; font-size: 18px; color: var(--black); }
-        .comp-data p { margin: 2px 0; font-size: 10px; color: #333; line-height: 1.3; }
-        .logo-box { flex: 1; text-align: right; }
-        #out_logo { font-size: 28px; font-weight: bold; color: var(--gold); margin: 0; }
+        .inv-header { text-align: center; border-bottom: 2px solid var(--gold); padding-bottom: 15px; margin-bottom: 20px; }
+        .comp-title-en { font-size: 22px; font-weight: bold; margin: 0; color: var(--black); }
+        .comp-title-ar { font-size: 16px; margin: 5px 0; }
+        .comp-details { font-size: 11px; color: #444; line-height: 1.5; }
+        #logo-display { color: var(--gold); font-size: 24px; font-weight: bold; }
 
-        .inv-subject { text-align: center; margin: 15px 0; }
-        .inv-subject h2 { border: 1px solid #000; display: inline-block; padding: 4px 40px; font-size: 16px; background: #fafafa; }
+        .inv-subject { text-align: center; margin: 20px 0; }
+        .inv-subject h2 { border: 1.5px solid #000; display: inline-block; padding: 5px 40px; font-size: 18px; background: #fafafa; }
 
-        .client-info { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; background: #fdfdfd; padding: 10px; border: 1px solid #f0f0f0; }
+        .info-grid { display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px; }
+        .info-left, .info-right { line-height: 1.8; }
 
-        .print-table { width: 100%; border-collapse: collapse; margin: 15px 0; font-size: 11px; }
-        .print-table th { background: #f2f2f2; border: 1px solid #ccc; padding: 8px; }
-        .print-table td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+        .print-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 12px; }
+        .print-table th { background: #f2f2f2; border: 1px solid #000; padding: 10px; }
+        .print-table td { border: 1px solid #000; padding: 10px; text-align: center; }
 
-        .footer-grid { display: flex; justify-content: space-between; margin-top: 25px; }
-        .terms-area { width: 60%; font-size: 10px; }
-        .totals-area { width: 35%; }
-        .total-row { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+        .footer-flex { display: flex; justify-content: space-between; margin-top: 30px; }
+        .terms-side { width: 60%; font-size: 11px; }
+        .totals-side { width: 35%; }
+        .row-total { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
 
-        .archive-section { margin-top: 50px; border-top: 5px double var(--gold); }
+        .archive-section { margin-top: 50px; border-top: 5px double var(--gold); padding-top: 20px; }
         .archive-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .archive-table th, .archive-table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
 
@@ -58,68 +63,82 @@
     <div class="admin-panel no-print">
         <h3>1. إعدادات هوية الشركة / Company Identity</h3>
         <div class="form-row">
-            <div class="form-group"><label>الاسم (EN)</label><input type="text" id="set_en" value="Digital Space Electronics L.L.C"></div>
-            <div class="form-group"><label>الاسم (AR)</label><input type="text" id="set_ar" value="ديجيتال سبيس للإلكترونيات ش.ذ.م.م"></div>
-            <div class="form-group"><label>الرقم الضريبي TRN</label><input type="text" id="set_trn" value="10001772444400003"></div>
+            <div class="form-group"><label>اسم الشركة (EN)</label><input type="text" id="set_en" value="Digital Space Electronics L.L.C" oninput="applyAll()"></div>
+            <div class="form-group"><label>اسم الشركة (AR)</label><input type="text" id="set_ar" value="ديجيتال سبيس للإلكترونيات ش.ذ.م.م" oninput="applyAll()"></div>
+            <div class="form-group"><label>الرقم الضريبي TRN</label><input type="text" id="set_trn" value="10001772444400003" oninput="applyAll()"></div>
         </div>
         <div class="form-row">
-            <div class="form-group"><label>العنوان</label><input type="text" id="set_addr" value="Shop 7 Obaid EL Helo Bldg., Bur-Dubai, Dubai, UAE"></div>
-            <div class="form-group"><label>الهاتف (Phone)</label><input type="text" id="set_ph" value="+971-4-3594774"></div>
-            <div class="form-group"><label>الموبايل (Mobile)</label><input type="text" id="set_mob" value="+971-50-4509223"></div>
+            <div class="form-group"><label>العنوان</label><input type="text" id="set_addr" value="Shop 7 Obaid EL Helo Bldg., Bur-Dubai, Dubai, UAE" oninput="applyAll()"></div>
+            <div class="form-group"><label>الهاتف (Phone)</label><input type="text" id="set_ph" value="+971-4-3594774" oninput="applyAll()"></div>
+            <div class="form-group"><label>الموبايل (Mobile)</label><input type="text" id="set_mob" value="+971-50-4509223" oninput="applyAll()"></div>
         </div>
         <div class="form-row">
-            <div class="form-group"><label>الشعار (Logo Text)</label><input type="text" id="set_logo" value="DSE"></div>
-            <div class="form-group"><label>الشروط AR</label><input type="text" id="set_t_ar" value="استلمت البضاعة بحالة جيدة."></div>
-            <div class="form-group"><label>الشروط EN</label><input type="text" id="set_t_en" value="Received in good condition."></div>
+            <div class="form-group"><label>نص الشعار</label><input type="text" id="set_logo" value="DSE" oninput="applyAll()"></div>
+            <div class="form-group"><label>شروط AR</label><input type="text" id="set_t_ar" value="استلمت البضاعة بحالة جيدة." oninput="applyAll()"></div>
+            <div class="form-group"><label>شروط EN</label><input type="text" id="set_t_en" value="Received in good condition." oninput="applyAll()"></div>
         </div>
-        <button class="btn btn-save" style="width:100%" onclick="saveIdentity()">حفظ إعدادات الهوية</button>
     </div>
 
     <div class="admin-panel no-print">
-        <h3>2. بيانات الفاتورة الحالية / Current Invoice</h3>
+        <h3>2. بيانات الفاتورة والأصناف / Data & Items</h3>
         <div class="form-row">
-            <div class="form-group"><label>اسم العميل</label><input type="text" id="in_cust" oninput="sync()"></div>
-            <div class="form-group"><label>هاتف العميل</label><input type="text" id="in_cust_ph" oninput="sync()"></div>
+            <div class="form-group"><label>العميل / Customer</label><input type="text" id="in_cust" oninput="sync()"></div>
+            <div class="form-group"><label>الهاتف / Phone</label><input type="text" id="in_cust_ph" oninput="sync()"></div>
             <div class="form-group"><label>رقم الفاتورة (تلقائي)</label><input type="text" id="in_no" readonly></div>
             <div class="form-group"><label>التاريخ</label><input type="date" id="in_date" oninput="sync()"></div>
         </div>
-        <div class="form-row" style="background:#f9f9f9; padding:10px; border: 1px solid #ddd; border-radius: 8px;">
-            <div class="form-group" style="flex:2"><label>الوصف</label><input type="text" id="p_desc"></div>
-            <div class="form-group"><label>الكود</label><input type="text" id="p_code"></div>
-            <div class="form-group"><label>الكمية</label><input type="number" id="p_qty" value="1"></div>
-            <div class="form-group"><label>السعر</label><input type="number" id="p_price"></div>
+        <div class="form-row" style="background:#f9f9f9; padding:15px; border: 1px solid #ddd; border-radius: 8px;">
+            <div class="form-group" style="flex:2"><label>الوصف / Description</label><input type="text" id="p_desc"></div>
+            <div class="form-group"><label>الكود / Code</label><input type="text" id="p_code"></div>
+            <div class="form-group"><label>الكمية / Qty</label><input type="number" id="p_qty" value="1"></div>
+            <div class="form-group"><label>السعر / Price</label><input type="number" id="p_price"></div>
             <div class="form-group"><label>الضريبة</label><select id="p_vat"><option value="0.05">5%</option><option value="0">0%</option></select></div>
-            <button class="btn btn-add" style="margin-top:20px" onclick="addItem()">+ إضافة</button>
+            <button class="btn btn-add" style="margin-top:20px" onclick="addItem()">+ إضافة / Add</button>
         </div>
-        <div class="form-row" style="margin-top:15px; justify-content:center; gap:15px;">
-            <button class="btn btn-save" onclick="saveToCloud()">☁️ حفظ في السحابة</button>
-            <button class="btn btn-print" onclick="window.print()">🖨️ طباعة</button>
-            <button class="btn" style="background:#e67e22" onclick="newInvoice()">🔄 فاتورة جديدة</button>
+
+        <table class="edit-table">
+            <thead>
+                <tr>
+                    <th>الوصف</th>
+                    <th>الكود</th>
+                    <th>الكمية</th>
+                    <th>السعر</th>
+                    <th>الضريبة</th>
+                    <th>إجراء</th>
+                </tr>
+            </thead>
+            <tbody id="edit_body"></tbody>
+        </table>
+
+        <div class="form-row" style="margin-top:20px; justify-content:center; gap:15px;">
+            <button class="btn btn-save" onclick="saveToCloud()">☁️ حفظ وتحديث الفاتورة فوراً / Save</button>
+            <button class="btn btn-print" onclick="window.print()">🖨️ طباعة الفاتورة / Print</button>
+            <button class="btn" style="background:#e67e22" onclick="newInvoice()">🔄 فاتورة جديدة / New</button>
         </div>
     </div>
 
     <div class="invoice-card" id="invoice">
         <div class="inv-header">
-            <div class="comp-data">
-                <h1 id="out_en">Digital Space Electronics L.L.C</h1>
-                <p id="out_ar">ديجيتال سبيس للإلكترونيات ش.ذ.م.م</p>
-                <p id="out_addr">...</p>
-                <p>Tel: <span id="out_ph">...</span> | Mobile: <span id="out_mob">...</span></p>
-                <p><strong>TRN: <span id="out_trn">...</span></strong></p>
+            <div id="logo-display">DSE</div>
+            <p class="comp-title-en" id="out_en">Digital Space Electronics L.L.C</p>
+            <p class="comp-title-ar" id="out_ar">ديجيتال سبيس للإلكترونيات ش.ذ.م.م</p>
+            <div class="comp-details">
+                <span id="out_addr">...</span><br>
+                Phone: <span id="out_ph">...</span> | Mobile: <span id="out_mob">...</span><br>
+                <strong>TRN: <span id="out_trn">...</span></strong>
             </div>
-            <div class="logo-box"><p id="out_logo">DSE</p></div>
         </div>
 
         <div class="inv-subject"><h2>TAX INVOICE / فاتورة ضريبية</h2></div>
 
-        <div class="client-info">
-            <div>
-                <p><strong>To / السيد:</strong> <span id="out_cust">........</span></p>
-                <p><strong>Phone / هاتف:</strong> <span id="out_cust_ph">........</span></p>
+        <div class="info-grid">
+            <div class="info-left">
+                <strong>To / السيد:</strong> <span id="out_cust">...................</span><br>
+                <strong>Phone / هاتف:</strong> <span id="out_cust_ph">...................</span>
             </div>
-            <div style="text-align:left" dir="ltr">
-                <p><strong>Inv No:</strong> <span id="out_no_disp">...</span></p>
-                <p><strong>Date:</strong> <span id="out_date_disp">...</span></p>
+            <div class="info-right" style="text-align:left" dir="ltr">
+                <strong>Inv No:</strong> <span id="out_no_disp">...</span><br>
+                <strong>Date:</strong> <span id="out_date_disp">...</span>
             </div>
         </div>
 
@@ -138,23 +157,25 @@
             <tbody id="items_body"></tbody>
         </table>
 
-        <div class="footer-grid">
-            <div class="terms-area">
+        <div class="footer-flex">
+            <div class="terms-side">
                 <p><strong>Terms / الشروط:</strong></p>
                 <p id="out_t_en">- Received in good condition.</p>
                 <p id="out_t_ar">- استلمت البضاعة بحالة جيدة.</p>
-                <br><br><span>Stamp & Signature: ________________</span>
+                <br><br><span>Stamp & Signature / الختم والتوقيع: ________________</span>
             </div>
-            <div class="totals-area">
-                <div class="total-row"><span>Sub Total</span> <span id="sub_val">0.00</span></div>
-                <div class="total-row"><span>VAT (5%)</span> <span id="vat_val">0.00</span></div>
-                <div class="total-row" style="font-weight:bold; font-size:14px; border-top:2px solid #000"><span>Net Amount</span> <span id="net_val">0.00</span></div>
+            <div class="totals-side">
+                <div class="row-total"><span>Sub Total / المجموع</span> <span id="sub_val">0.00</span></div>
+                <div class="row-total"><span>VAT (5%) / الضريبة</span> <span id="vat_val">0.00</span></div>
+                <div class="row-total" style="font-weight:bold; font-size:15px; border-top:2px solid #000; margin-top:5px; padding-top:10px;">
+                    <span>Net Amount / الصافي</span> <span id="net_val">0.00</span>
+                </div>
             </div>
         </div>
     </div>
 
     <div class="admin-panel no-print archive-section">
-        <h3>3. أرشيف الفواتير السحابي / Cloud Archive</h3>
+        <h3 style="color:var(--blue)">3. أرشيف الفواتير السحابي / Cloud Archive</h3>
         <table class="archive-table">
             <thead>
                 <tr>
@@ -170,7 +191,7 @@
     </div>
 
     <script>
-        // Firebase Configuration
+        // تكوين Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyAOpqXo_wgCUGw_vUYAwepeHfkScqHdrc8",
             authDomain: "tax-invoice-2cb6d.firebaseapp.com",
@@ -186,40 +207,21 @@
         let items = [];
         let nextInvNo = 1001;
 
-        function saveIdentity() {
-            const iden = {
-                en: document.getElementById('set_en').value,
-                ar: document.getElementById('set_ar').value,
-                trn: document.getElementById('set_trn').value,
-                addr: document.getElementById('set_addr').value,
-                ph: document.getElementById('set_ph').value,
-                mob: document.getElementById('set_mob').value,
-                logo: document.getElementById('set_logo').value,
-                tar: document.getElementById('set_t_ar').value,
-                ten: document.getElementById('set_t_en').value
-            };
-            localStorage.setItem('dse_identity', JSON.stringify(iden));
-            applyIdentity();
-            alert("تم حفظ بيانات الشركة");
-        }
-
-        function applyIdentity() {
-            const d = JSON.parse(localStorage.getItem('dse_identity'));
-            if(!d) return;
-            document.getElementById('out_en').innerText = d.en;
-            document.getElementById('out_ar').innerText = d.ar;
-            document.getElementById('out_trn').innerText = d.trn;
-            document.getElementById('out_addr').innerText = d.addr;
-            document.getElementById('out_ph').innerText = d.ph;
-            document.getElementById('out_mob').innerText = d.mob;
-            document.getElementById('out_logo').innerText = d.logo;
-            document.getElementById('out_t_ar').innerText = "- " + d.tar;
-            document.getElementById('out_t_en').innerText = "- " + d.ten;
+        function applyAll() {
+            document.getElementById('out_en').innerText = document.getElementById('set_en').value;
+            document.getElementById('out_ar').innerText = document.getElementById('set_ar').value;
+            document.getElementById('out_trn').innerText = document.getElementById('set_trn').value;
+            document.getElementById('out_addr').innerText = document.getElementById('set_addr').value;
+            document.getElementById('out_ph').innerText = document.getElementById('set_ph').value;
+            document.getElementById('out_mob').innerText = document.getElementById('set_mob').value;
+            document.getElementById('logo-display').innerText = document.getElementById('set_logo').value;
+            document.getElementById('out_t_ar').innerText = "- " + document.getElementById('set_t_ar').value;
+            document.getElementById('out_t_en').innerText = "- " + document.getElementById('set_t_en').value;
         }
 
         function sync() {
-            document.getElementById('out_cust').innerText = document.getElementById('in_cust').value || '........';
-            document.getElementById('out_cust_ph').innerText = document.getElementById('in_cust_ph').value || '........';
+            document.getElementById('out_cust').innerText = document.getElementById('in_cust').value || '...................';
+            document.getElementById('out_cust_ph').innerText = document.getElementById('in_cust_ph').value || '...................';
             document.getElementById('out_no_disp').innerText = document.getElementById('in_no').value;
             document.getElementById('out_date_disp').innerText = document.getElementById('in_date').value;
         }
@@ -229,28 +231,47 @@
             const price = parseFloat(document.getElementById('p_price').value);
             const qty = parseFloat(document.getElementById('p_qty').value);
             const vat = parseFloat(document.getElementById('p_vat').value);
-            if(!desc || isNaN(price)) return alert("أكمل البيانات");
-            items.push({ desc, code: document.getElementById('p_code').value || '-', qty, price, vatRate: vat });
-            renderItems();
-            document.getElementById('p_desc').value = ''; document.getElementById('p_price').value = '';
+            const code = document.getElementById('p_code').value || '-';
+            if(!desc || isNaN(price)) return alert("أكمل بيانات الصنف");
+            
+            items.push({ desc, code, qty, price, vatRate: vat });
+            renderAll();
+            document.getElementById('p_desc').value = ''; 
+            document.getElementById('p_price').value = '';
+            document.getElementById('p_code').value = '';
         }
 
-        function renderItems() {
-            const body = document.getElementById('items_body');
-            body.innerHTML = '';
+        function renderAll() {
+            const pBody = document.getElementById('items_body');
+            const eBody = document.getElementById('edit_body');
+            pBody.innerHTML = ''; eBody.innerHTML = '';
             let sub = 0; let vat = 0;
+
             items.forEach((it, i) => {
                 const total = it.qty * it.price;
                 const vAmount = total * it.vatRate;
                 sub += total; vat += vAmount;
-                body.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmount).toFixed(2)}</td></tr>`;
+
+                // لجدول الفاتورة
+                pBody.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmount).toFixed(2)}</td></tr>`;
+                
+                // لجدول التعديل (الميزة المطلوبة)
+                eBody.innerHTML += `<tr>
+                    <td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.vatRate*100}%</td>
+                    <td><button onclick="removeItem(${i})" style="background:red; color:white; border:none; border-radius:3px; padding:3px 8px; cursor:pointer">حذف</button></td>
+                </tr>`;
             });
+
             document.getElementById('sub_val').innerText = sub.toFixed(2);
             document.getElementById('vat_val').innerText = vat.toFixed(2);
             document.getElementById('net_val').innerText = (sub + vat).toFixed(2);
         }
 
-        // السحابة والأرقام التسلسلية
+        function removeItem(i) {
+            items.splice(i, 1);
+            renderAll();
+        }
+
         function getNextNo() {
             db.ref('invoices').limitToLast(1).once('value', snap => {
                 const data = snap.val();
@@ -271,20 +292,20 @@
                 date: document.getElementById('in_date').value, items: items, total: document.getElementById('net_val').innerText
             };
             db.ref('invoices/' + id).set(data).then(() => {
-                alert("✅ تم الحفظ بنجاح");
-                newInvoice();
+                alert("✅ تم الحفظ في الأرشيف السحابي!");
             });
         }
 
         db.ref('invoices').on('value', snap => {
             const body = document.getElementById('archive_body'); body.innerHTML = '';
             const data = snap.val();
-            for(let id in data) {
+            if(!data) return;
+            Object.keys(data).reverse().forEach(id => {
                 const inv = data[id];
                 body.innerHTML += `<tr><td>${inv.no}</td><td>${inv.cust}</td><td>${inv.date}</td><td>${inv.total}</td>
                 <td><button onclick="loadInv('${id}')" style="background:var(--blue); border:none; color:white; padding:4px 8px; cursor:pointer">استدعاء</button>
                 <button onclick="deleteInv('${id}')" style="background:var(--danger); border:none; color:white; padding:4px 8px; cursor:pointer">حذف</button></td></tr>`;
-            }
+            });
         });
 
         function loadInv(id) {
@@ -295,18 +316,19 @@
                 document.getElementById('in_cust_ph').value = inv.cph || '';
                 document.getElementById('in_date').value = inv.date;
                 items = inv.items || [];
-                renderItems(); sync();
-                window.scrollTo(0, 450);
+                renderAll(); sync();
+                window.scrollTo(0, 400);
             });
         }
 
-        function deleteInv(id) { if(confirm("حذف نهائي؟")) db.ref('invoices/' + id).remove(); }
+        function deleteInv(id) { if(confirm("هل أنت متأكد من الحذف النهائي؟")) db.ref('invoices/' + id).remove(); }
         function newInvoice() { location.reload(); }
 
         window.onload = () => {
-            applyIdentity();
+            applyAll();
             getNextNo();
             document.getElementById('in_date').valueAsDate = new Date();
+            sync();
         };
     </script>
 </body>
