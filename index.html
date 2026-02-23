@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSE - Final System with Excel Export</title>
+    <title>DSE - Full Detail Cloud System</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
@@ -23,7 +23,7 @@
         .btn-add { background: var(--success); }
         .btn-print { background: var(--black); }
         .btn-save { background: var(--blue); }
-        .btn-excel { background: #1d6f42; margin-right: 10px; }
+        .btn-excel { background: #1d6f42; }
 
         .edit-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; background: #fff; }
         .edit-table th { background: #f8f9fa; border: 1px solid #ddd; padding: 8px; }
@@ -166,7 +166,7 @@
                 <label>بحث برقم الفاتورة أو اسم العميل:</label>
                 <input type="text" id="search_input" placeholder="اكتب للبحث..." onkeyup="filterArchive()" style="width:100%">
             </div>
-            <button class="btn btn-excel" onclick="exportToExcel()">📊 تصدير للأرشيف كـ Excel</button>
+            <button class="btn btn-excel" onclick="exportDetailedExcel()">📊 تصدير تقرير أصناف تفصيلي (Excel)</button>
         </div>
         <table class="archive-table">
             <thead>
@@ -261,7 +261,7 @@
                 no: id, cust: document.getElementById('in_cust').value, cph: document.getElementById('in_cust_ph').value,
                 date: document.getElementById('in_date').value, items: items, total: document.getElementById('net_val').innerText
             };
-            db.ref('invoices/' + id).set(data).then(() => alert("✅ تم الحفظ بنجاح"));
+            db.ref('invoices/' + id).set(data).then(() => alert("✅ تم الحفظ في السحابة"));
         }
 
         db.ref('invoices').on('value', snap => {
@@ -291,19 +291,31 @@
             displayArchive(filtered);
         }
 
-        // وظيفة التصدير لإكسيل (الإضافة المطلوبة)
-        function exportToExcel() {
-            const dataToExport = Object.values(allInvoices).map(inv => ({
-                "رقم الفاتورة": inv.no,
-                "اسم العميل": inv.cust,
-                "الهاتف": inv.cph || "",
-                "التاريخ": inv.date,
-                "المبلغ الإجمالي": inv.total
-            }));
-            const ws = XLSX.utils.json_to_sheet(dataToExport);
+        // التصدير التفصيلي لكل صنف (الإضافة المطلوبة)
+        function exportDetailedExcel() {
+            let detailedData = [];
+            Object.values(allInvoices).forEach(inv => {
+                inv.items.forEach(item => {
+                    const lineTotal = item.qty * item.price;
+                    const lineVat = lineTotal * item.vatRate;
+                    detailedData.push({
+                        "رقم الفاتورة": inv.no,
+                        "التاريخ": inv.date,
+                        "اسم العميل": inv.cust,
+                        "هاتف العميل": inv.cph || "",
+                        "كود الصنف": item.code,
+                        "الوصف (الصنف)": item.desc,
+                        "الكمية": item.qty,
+                        "سعر الوحدة": item.price,
+                        "الضريبة (5%)": lineVat.toFixed(2),
+                        "الإجمالي (شامل الضريبة)": (lineTotal + lineVat).toFixed(2)
+                    });
+                });
+            });
+            const ws = XLSX.utils.json_to_sheet(detailedData);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Invoices");
-            XLSX.writeFile(wb, `DSE_Archive_${new Date().toLocaleDateString()}.xlsx`);
+            XLSX.utils.book_append_sheet(wb, ws, "Detailed Report");
+            XLSX.writeFile(wb, `DSE_Detailed_Report_${new Date().toLocaleDateString()}.xlsx`);
         }
 
         function loadInv(id) {
