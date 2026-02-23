@@ -3,9 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSE - Professional System</title>
+    <title>DSE - Final System with Excel Export</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     
     <style>
         :root { --gold: #c5a021; --black: #1a1a1a; --danger: #e74c3c; --success: #28a745; --blue: #3498db; }
@@ -22,12 +23,12 @@
         .btn-add { background: var(--success); }
         .btn-print { background: var(--black); }
         .btn-save { background: var(--blue); }
+        .btn-excel { background: #1d6f42; margin-right: 10px; }
 
         .edit-table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.8rem; background: #fff; }
         .edit-table th { background: #f8f9fa; border: 1px solid #ddd; padding: 8px; }
         .edit-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
 
-        /* تنسيق الهيدر الجديد (لوجو في ناحية والبيانات في ناحية) */
         .invoice-card { width: 210mm; min-height: 297mm; margin: 20px auto; background: #fff; padding: 10mm; box-sizing: border-box; border: 1px solid #eee; }
         .inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin-bottom: 20px; }
         .header-logo { flex: 1; font-size: 32px; font-weight: bold; color: var(--gold); text-align: right; }
@@ -48,7 +49,7 @@
         .totals-side { width: 35%; }
         .row-total { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
 
-        .search-box { margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 8px; border: 1px solid #ddd; }
+        .search-container { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
 
         .archive-section { margin-top: 50px; border-top: 5px double var(--gold); padding-top: 20px; }
         .archive-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -160,9 +161,12 @@
 
     <div class="admin-panel no-print archive-section">
         <h3>3. أرشيف الفواتير السحابي / Cloud Archive</h3>
-        <div class="search-box">
-            <label>بحث سريع (رقم الفاتورة أو اسم العميل):</label>
-            <input type="text" id="search_input" placeholder="اكتب هنا للبحث..." onkeyup="filterArchive()">
+        <div class="search-container">
+            <div style="flex:1">
+                <label>بحث برقم الفاتورة أو اسم العميل:</label>
+                <input type="text" id="search_input" placeholder="اكتب للبحث..." onkeyup="filterArchive()" style="width:100%">
+            </div>
+            <button class="btn btn-excel" onclick="exportToExcel()">📊 تصدير للأرشيف كـ Excel</button>
         </div>
         <table class="archive-table">
             <thead>
@@ -257,7 +261,7 @@
                 no: id, cust: document.getElementById('in_cust').value, cph: document.getElementById('in_cust_ph').value,
                 date: document.getElementById('in_date').value, items: items, total: document.getElementById('net_val').innerText
             };
-            db.ref('invoices/' + id).set(data).then(() => alert("✅ تم الحفظ"));
+            db.ref('invoices/' + id).set(data).then(() => alert("✅ تم الحفظ بنجاح"));
         }
 
         db.ref('invoices').on('value', snap => {
@@ -285,6 +289,21 @@
                 }
             }
             displayArchive(filtered);
+        }
+
+        // وظيفة التصدير لإكسيل (الإضافة المطلوبة)
+        function exportToExcel() {
+            const dataToExport = Object.values(allInvoices).map(inv => ({
+                "رقم الفاتورة": inv.no,
+                "اسم العميل": inv.cust,
+                "الهاتف": inv.cph || "",
+                "التاريخ": inv.date,
+                "المبلغ الإجمالي": inv.total
+            }));
+            const ws = XLSX.utils.json_to_sheet(dataToExport);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Invoices");
+            XLSX.writeFile(wb, `DSE_Archive_${new Date().toLocaleDateString()}.xlsx`);
         }
 
         function loadInv(id) {
