@@ -3,188 +3,411 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSE Accounting System</title>
+    <title>DSE - Professional System v5.3</title>
     
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
     
+    <style id="theme-logic">
+        :root { 
+            --main-color: #c5a021; 
+            --text-color: #1a1a1a;
+            --table-head-bg: #f2f2f2;
+            --table-head-text: #000000;
+            --border-color: #000000;
+        }
+    </style>
+
     <style>
-        :root { --main-color: #c5a021; --text-color: #1a1a1a; --border-color: #000; }
-        body { font-family: 'Segoe UI', sans-serif; margin: 0; padding: 10px; background: #f0f2f5; font-size: 13px; }
-        .no-print { display: block; }
-        .admin-panel { max-width: 1100px; margin: 10px auto; background: #fff; padding: 15px; border-radius: 12px; border-top: 5px solid var(--main-color); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 10px; background-color: #f0f2f5; font-size: 13px; }
+        .admin-panel { max-width: 1100px; margin: 10px auto; background: #fff; padding: 15px; border-radius: 12px; border-top: 5px solid var(--main-color); box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; }
+        
+        .collapsible-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; padding: 12px; background: #fafafa; border-radius: 8px; border: 1px solid #eee; margin-bottom: 5px; transition: 0.3s; }
+        .collapsible-header:hover { background: #f0f0f0; }
+        .collapsible-content { max-height: 0; overflow: hidden; transition: max-height 0.5s ease-in-out; padding: 0 15px; }
+        .collapsible-content.active { max-height: 2000px; padding: 20px 15px; border: 1px solid #eee; border-top: 0; }
+        .arrow { transition: 0.3s; font-size: 16px; color: var(--main-color); }
+        .rotate { transform: rotate(180deg); }
+
         .form-row { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
         .form-group { flex: 1; min-width: 180px; display: flex; flex-direction: column; }
-        label { font-size: 11px; font-weight: bold; margin-bottom: 4px; }
-        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
-        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; }
-        .btn-save { background: #3498db; } .btn-add { background: #28a745; } .btn-print { background: #000; }
-        .btn-edit-row { background: #f39c12; color: #fff; padding: 4px 8px; font-size: 10px; margin-left: 5px; }
-        .btn-delete-row { background: #e74c3c; color: #fff; padding: 4px 8px; font-size: 10px; }
+        label { font-size: 0.75rem; font-weight: bold; margin-bottom: 4px; color: #444; }
+        input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.9rem; }
         
-        /* الفاتورة */
-        .invoice-card { width: 210mm; min-height: 280mm; margin: 20px auto; background: #fff; padding: 12mm; border: 1px solid #ddd; position: relative; }
-        .watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); width: 60%; opacity: 0.08; pointer-events: none; }
-        .inv-header { display: flex; justify-content: space-between; border-bottom: 3px solid var(--main-color); padding-bottom: 15px; }
-        .logo-box { flex: 1; text-align: left; }
-        .logo-img { max-height: 90px; }
-        .logo-text { font-size: 40px; font-weight: bold; color: var(--main-color); }
-        .print-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
-        .print-table th { background: #f2f2f2; border: 1px solid var(--border-color); padding: 8px; }
-        .print-table td { border: 1px solid var(--border-color); padding: 8px; text-align: center; }
+        .btn { padding: 10px 15px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; transition: 0.3s; display: inline-flex; align-items: center; justify-content: center; gap: 5px; }
+        .btn-add { background: #28a745; }
+        .btn-save { background: #3498db; }
+        .btn-print { background: #000; }
+        .btn-new { background: #e67e22; }
+        .btn-excel { background: #1f7244; } /* لون زر الإكسيل */
+        .btn-delete { background: #e74c3c; padding: 5px 10px; font-size: 11px; }
+        .btn-clear { background: #95a5a6; padding: 5px; font-size: 10px; margin-top: 5px; }
+        .btn-settings { background: var(--main-color); width: 100%; margin-top: 10px; padding: 15px; }
+
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+        .data-table th, .data-table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
+        .data-table th { background: #f4f4f4; }
+
+        .invoice-card { width: 210mm; min-height: 270mm; margin: 20px auto; background: #fff; padding: 10mm; box-sizing: border-box; border: 1px solid #eee; position: relative; color: var(--text-color); z-index: 1; overflow: hidden; }
+        .watermark-overlay { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%) rotate(-30deg); width: 60%; opacity: 0.08; pointer-events: none; z-index: -1; }
+        
+        .inv-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid var(--main-color); padding-bottom: 15px; margin-bottom: 20px; }
+        .logo-container { flex: 1; display: flex; justify-content: flex-end; align-items: center; }
+        #logo-img-display { max-height: 85px; max-width: 220px; object-fit: contain; }
+        .header-logo-text { font-size: 50px; font-weight: bold; color: var(--main-color); line-height: 1; }
+        
+        .header-info { flex: 1.5; text-align: left; dir: ltr; }
+        .header-info h1 { font-size: 20px; margin: 0; color: #000; }
+        .header-info p { font-size: 11px; margin: 3px 0; }
+        
+        .inv-subject { text-align: center; margin: 20px 0; }
+        .inv-subject h2 { border: 2px solid var(--border-color); display: inline-block; padding: 7px 50px; font-size: 18px; background: #fcfcfc; }
+
+        .print-table { width: 100%; border-collapse: collapse; background: transparent; }
+        .print-table th { background: var(--table-head-bg) !important; color: var(--table-head-text) !important; border: 1px solid var(--border-color); padding: 10px; -webkit-print-color-adjust: exact; }
+        .print-table td { border: 1px solid var(--border-color); padding: 10px; text-align: center; }
+
+        .footer-flex { display: flex; justify-content: space-between; margin-top: 40px; }
+        .row-total { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
+
         @media print { .no-print { display: none !important; } .invoice-card { margin: 0; border: none; width: 100%; } }
     </style>
 </head>
 <body>
 
     <div class="admin-panel no-print">
-        <h3>⚙️ إعدادات الهوية</h3>
-        <div class="form-row">
-            <div class="form-group"><label>الاسم (EN)</label><input type="text" id="set_en" oninput="sync()"></div>
-            <div class="form-group"><label>الاسم (AR)</label><input type="text" id="set_ar" oninput="sync()"></div>
-            <div class="form-group"><label>الرقم الضريبي</label><input type="text" id="set_trn" oninput="sync()"></div>
+        <div class="collapsible-header" onclick="toggleSection('settings-content', 'settings-arrow')">
+            <h3>⚙️ إعدادات هوية الشركة والبيانات</h3>
+            <span class="arrow" id="settings-arrow">▼</span>
         </div>
-        <div class="form-row">
-            <div class="form-group"><label>العنوان</label><input type="text" id="set_addr" oninput="sync()"></div>
-            <div class="form-group"><label>الهاتف</label><input type="text" id="set_ph" oninput="sync()"></div>
-            <div class="form-group"><label>نص الشعار</label><input type="text" id="set_l_txt" oninput="sync()"></div>
+        <div class="collapsible-content" id="settings-content">
+            <div class="form-row">
+                <div class="form-group"><label>الاسم (English)</label><input type="text" id="set_en"></div>
+                <div class="form-group"><label>الاسم (العربي)</label><input type="text" id="set_ar"></div>
+                <div class="form-group"><label>الرقم الضريبي TRN</label><input type="text" id="set_trn"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>العنوان</label><input type="text" id="set_addr"></div>
+                <div class="form-group"><label>الهاتف (Tel)</label><input type="text" id="set_ph"></div>
+                <div class="form-group"><label>الموبايل (Mob)</label><input type="text" id="set_mob"></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>نص الشعار</label><input type="text" id="set_logo_text"></div>
+                <div class="form-group">
+                    <label>رفع لوجو (PNG)</label>
+                    <input type="file" id="logo_input" accept="image/*" onchange="previewImage(this, 'logo')">
+                    <button class="btn btn-clear" onclick="clearMedia('logo')">❌ حذف صورة اللوجو</button>
+                </div>
+                <div class="form-group">
+                    <label>رفع علامة مائية</label>
+                    <input type="file" id="water_input" accept="image/*" onchange="previewImage(this, 'water')">
+                    <button class="btn btn-clear" onclick="clearMedia('water')">❌ حذف العلامة المائية</button>
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>الشروط (Ar)</label><input type="text" id="set_t_ar"></div>
+                <div class="form-group"><label>الشروط (En)</label><input type="text" id="set_t_en"></div>
+            </div>
+            <div class="form-row" style="background:#f8f9fa; padding:10px; border-radius:8px;">
+                <div class="form-group"><label>اللون الرئيسي</label><input type="color" id="clr_main" oninput="liveColor()"></div>
+                <div class="form-group"><label>لون النصوص</label><input type="color" id="clr_text" oninput="liveColor()"></div>
+                <div class="form-group"><label>خلفية الجدول</label><input type="color" id="clr_bg" oninput="liveColor()"></div>
+                <div class="form-group"><label>خط الجدول</label><input type="color" id="clr_head_txt" oninput="liveColor()"></div>
+                <div class="form-group"><label>الحدود</label><input type="color" id="clr_border" oninput="liveColor()"></div>
+            </div>
+            <button class="btn btn-settings" onclick="saveProfile()">💾 حفظ الهوية والبيانات سحابياً</button>
         </div>
-        <div class="form-row">
-            <div class="form-group"><label>اللوجو</label><input type="file" onchange="uploadImg(this, 'logo')"></div>
-            <div class="form-group"><label>العلامة المائية</label><input type="file" onchange="uploadImg(this, 'water')"></div>
-        </div>
-        <button class="btn btn-save" onclick="saveProfile()">💾 حفظ الهوية</button>
     </div>
 
     <div class="admin-panel no-print">
-        <h3>📄 بيانات العميل والأصناف</h3>
+        <h3>📄 تحرير فاتورة جديدة</h3>
         <div class="form-row">
-            <div class="form-group"><label>العميل</label><input type="text" id="in_cust" oninput="sync()"></div>
-            <div class="form-group"><label>هاتف العميل</label><input type="text" id="in_cust_ph" oninput="sync()"></div>
+            <div class="form-group"><label>اسم العميل</label><input type="text" id="in_cust" oninput="sync()"></div>
+            <div class="form-group"><label>الهاتف</label><input type="text" id="in_cust_ph" oninput="sync()"></div>
             <div class="form-group"><label>رقم الفاتورة</label><input type="text" id="in_no" readonly></div>
+            <div class="form-group"><label>التاريخ</label><input type="date" id="in_date" oninput="sync()"></div>
         </div>
-        <div class="form-row" style="background:#f9f9f9; padding:10px;">
+        <div class="form-row" style="background:#fcfcfc; padding:15px; border-radius:10px; border:1px solid #ddd;">
             <div class="form-group" style="flex:2"><label>الوصف</label><input type="text" id="p_desc"></div>
+            <div class="form-group"><label>الكود</label><input type="text" id="p_code"></div>
             <div class="form-group"><label>الكمية</label><input type="number" id="p_qty" value="1"></div>
             <div class="form-group"><label>السعر</label><input type="number" id="p_price"></div>
-            <button class="btn btn-add" style="margin-top:20px;" onclick="addItem()">+ إضافة</button>
+            <div class="form-group"><label>الضريبة</label><select id="p_vat"><option value="0.05">5%</option><option value="0">0%</option></select></div>
+            <button class="btn btn-add" style="margin-top:22px" onclick="addItem()">+ إضافة صنف</button>
         </div>
-        <table style="width:100%; border-collapse: collapse; margin-top:10px;" border="1">
-            <thead><tr><th>الوصف</th><th>الكمية</th><th>السعر</th><th>إجراء</th></tr></thead>
+        <table class="data-table">
+            <thead><tr><th>الوصف</th><th>الكود</th><th>الكمية</th><th>السعر</th><th>إجراء</th></tr></thead>
             <tbody id="edit_body"></tbody>
         </table>
-        <div class="form-row" style="margin-top:15px;">
-            <button class="btn btn-save" onclick="saveInv()">☁️ حفظ الفاتورة</button>
+        <div class="form-row" style="margin-top:20px; justify-content:center; gap:10px;">
+            <button class="btn btn-save" onclick="saveInvoice()">☁️ حفظ الفاتورة</button>
             <button class="btn btn-print" onclick="window.print()">🖨️ طباعة</button>
+            <button class="btn btn-new" onclick="location.reload()">🔄 فاتورة جديدة</button>
         </div>
     </div>
 
     <div class="invoice-card" id="invoice">
-        <img id="out_water" class="watermark">
+        <img id="watermark-display" class="watermark-overlay" src="">
         <div class="inv-header">
-            <div class="logo-box" dir="ltr">
-                <h1 id="out_en">COMPANY</h1>
-                <p id="out_ar">الشركة</p>
-                <p id="out_addr">Address</p>
-                <p>TRN: <span id="out_trn">000</span> | Tel: <span id="out_ph">000</span></p>
+            <div class="logo-container">
+                <span id="logo-text-display" class="header-logo-text"></span>
+                <img id="logo-img-display" src="" style="display:none;">
             </div>
-            <div style="text-align:right;">
-                <span id="out_l_txt" class="logo-text">DSE</span>
-                <img id="out_logo" class="logo-img" style="display:none;">
+            <div class="header-info">
+                <h1 id="out_en"></h1><p id="out_ar"></p><p id="out_addr"></p>
+                <p>Tel: <span id="out_ph"></span> | Mob: <span id="out_mob"></span></p>
+                <p><strong>TRN: <span id="out_trn"></span></strong></p>
             </div>
         </div>
-        <div style="text-align:center; margin:20px 0;"><h2>TAX INVOICE / فاتورة ضريبية</h2></div>
-        <div style="display:flex; justify-content:space-between;">
+        <div class="inv-subject"><h2>TAX INVOICE / فاتورة ضريبية</h2></div>
+        <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
             <div><strong>To:</strong> <span id="out_cust">...</span><br><strong>PH:</strong> <span id="out_cust_ph">...</span></div>
-            <div dir="ltr"><strong>Inv:</strong> #<span id="out_no">000</span><br><strong>Date:</strong> <span id="out_date"></span></div>
+            <div style="text-align:left" dir="ltr"><strong>Inv No:</strong> <span id="out_no_disp"></span><br><strong>Date:</strong> <span id="out_date_disp"></span></div>
         </div>
         <table class="print-table">
-            <thead><tr><th>No.</th><th>Description</th><th>Qty</th><th>Price</th><th>Total</th></tr></thead>
-            <tbody id="out_body"></tbody>
+            <thead><tr><th>No.</th><th>Code</th><th>Description</th><th>Qty</th><th>Price</th><th>Tax</th><th>Total</th></tr></thead>
+            <tbody id="items_body"></tbody>
         </table>
-        <div style="margin-top:20px; float:left; width:30%;">
-            <div style="display:flex; justify-content:space-between;"><span>Total:</span> <span id="total_val">0.00</span></div>
+        <div class="footer-flex">
+            <div style="width:60%; font-size:11px;">
+                <p><strong>Terms:</strong></p><p id="out_t_en"></p><p id="out_t_ar"></p>
+                <br><span>Stamp & Signature: ________________</span>
+            </div>
+            <div style="width:35%">
+                <div class="row-total"><span>Total</span> <span id="sub_val">0.00</span></div>
+                <div class="row-total"><span>VAT 5%</span> <span id="vat_val">0.00</span></div>
+                <div class="row-total" style="font-weight:bold; border-top:2px solid var(--border-color)"><span>Net Amount</span> <span id="net_val">0.00</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="admin-panel no-print">
+        <div class="collapsible-header" onclick="toggleSection('archive-content', 'archive-arrow')">
+            <h3>📁 أرشيف الفواتير المحفوظة والبحث</h3>
+            <span class="arrow" id="archive-arrow">▼</span>
+        </div>
+        <div class="collapsible-content" id="archive-content">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>بحث برقم الفاتورة أو اسم العميل</label>
+                    <input type="text" id="search_input" onkeyup="filterArchive()" placeholder="اكتب هنا للبحث...">
+                </div>
+                <div class="form-group" style="flex:0; min-width:150px; justify-content:flex-end;">
+                    <button class="btn btn-excel" onclick="exportToExcel()">📊 تصدير Excel</button>
+                </div>
+            </div>
+            <table class="data-table">
+                <thead><tr><th>رقم</th><th>العميل</th><th>التاريخ</th><th>الإجمالي</th><th>إجراء</th></tr></thead>
+                <tbody id="archive_body"></tbody>
+            </table>
         </div>
     </div>
 
     <script>
         const firebaseConfig = { 
             apiKey: "AIzaSyAOpqXo_wgCUGw_vUYAwepeHfkScqHdrc8", 
-            databaseURL: "https://tax-invoice-2cb6d-default-rtdb.firebaseio.com",
-            projectId: "tax-invoice-2cb6d" 
+            authDomain: "tax-invoice-2cb6d.firebaseapp.com", 
+            databaseURL: "https://tax-invoice-2cb6d-default-rtdb.firebaseio.com", 
+            projectId: "tax-invoice-2cb6d", 
+            storageBucket: "tax-invoice-2cb6d.firebasestorage.app", 
+            messagingSenderId: "786072974890", 
+            appId: "1:786072974890:web:1d28aa6fd77d6a3546f553" 
         };
         firebase.initializeApp(firebaseConfig); 
         const db = firebase.database();
-        let items = []; let logo = ""; let water = "";
+        let items = []; let logoImg = ""; let waterImg = ""; let allInvoices = {};
 
-        function sync() {
-            document.getElementById('out_en').innerText = document.getElementById('set_en').value;
-            document.getElementById('out_ar').innerText = document.getElementById('set_ar').value;
-            document.getElementById('out_trn').innerText = document.getElementById('set_trn').value;
-            document.getElementById('out_addr').innerText = document.getElementById('set_addr').value;
-            document.getElementById('out_ph').innerText = document.getElementById('set_ph').value;
-            document.getElementById('out_l_txt').innerText = document.getElementById('set_l_txt').value || "DSE";
-            document.getElementById('out_cust').innerText = document.getElementById('in_cust').value;
-            document.getElementById('out_cust_ph').innerText = document.getElementById('in_cust_ph').value;
-            document.getElementById('out_no').innerText = document.getElementById('in_no').value;
-            document.getElementById('out_date').innerText = new Date().toLocaleDateString();
+        function toggleSection(cid, aid) {
+            document.getElementById(cid).classList.toggle('active');
+            document.getElementById(aid).classList.toggle('rotate');
         }
 
-        function uploadImg(input, type) {
-            const reader = new FileReader();
-            reader.onload = e => {
-                if(type==='logo'){ logo=e.target.result; document.getElementById('out_logo').src=logo; document.getElementById('out_logo').style.display="block"; document.getElementById('out_l_txt').style.display="none"; }
-                else { water=e.target.result; document.getElementById('out_water').src=water; }
-            };
-            reader.readAsDataURL(input.files[0]);
+        function liveColor() {
+            const root = document.documentElement.style;
+            root.setProperty('--main-color', document.getElementById('clr_main').value);
+            root.setProperty('--text-color', document.getElementById('clr_text').value);
+            root.setProperty('--table-head-bg', document.getElementById('clr_bg').value);
+            root.setProperty('--table-head-text', document.getElementById('clr_head_txt').value);
+            root.setProperty('--border-color', document.getElementById('clr_border').value);
+        }
+
+        function previewImage(input, type) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = e => {
+                    if(type==='logo') { logoImg = e.target.result; displayLogo(logoImg, document.getElementById('set_logo_text').value); }
+                    else { waterImg = e.target.result; document.getElementById('watermark-display').src = waterImg; }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function clearMedia(type) {
+            if(type === 'logo') {
+                logoImg = ""; document.getElementById('logo_input').value = "";
+                displayLogo("", document.getElementById('set_logo_text').value);
+            } else {
+                waterImg = ""; document.getElementById('water_input').value = "";
+                document.getElementById('watermark-display').src = "";
+            }
+        }
+
+        function displayLogo(img, txt) {
+            const iEl = document.getElementById('logo-img-display');
+            const tEl = document.getElementById('logo-text-display');
+            if(img) { iEl.src = img; iEl.style.display="block"; tEl.style.display="none"; }
+            else { iEl.style.display="none"; tEl.innerText = txt || "DSE"; tEl.style.display="block"; }
         }
 
         function saveProfile() {
-            const p = { en:document.getElementById('set_en').value, ar:document.getElementById('set_ar').value, trn:document.getElementById('set_trn').value, addr:document.getElementById('set_addr').value, ph:document.getElementById('set_ph').value, ltxt:document.getElementById('set_l_txt').value, logo:logo, water:water };
-            db.ref('profile').set(p).then(()=>alert("تم الحفظ"));
+            const profile = {
+                en: document.getElementById('set_en').value, ar: document.getElementById('set_ar').value,
+                trn: document.getElementById('set_trn').value, addr: document.getElementById('set_addr').value,
+                ph: document.getElementById('set_ph').value, mob: document.getElementById('set_mob').value,
+                logoTxt: document.getElementById('set_logo_text').value, logoImg: logoImg, waterImg: waterImg,
+                t_ar: document.getElementById('set_t_ar').value, t_en: document.getElementById('set_t_en').value,
+                c1: document.getElementById('clr_main').value, c2: document.getElementById('clr_text').value,
+                c3: document.getElementById('clr_bg').value, c4: document.getElementById('clr_head_txt').value,
+                c5: document.getElementById('clr_border').value
+            };
+            db.ref('companyProfile').set(profile).then(() => { alert("✅ تم حفظ الهوية"); location.reload(); });
+        }
+
+        function loadProfile() {
+            db.ref('companyProfile').on('value', snap => {
+                const d = snap.val();
+                if(d) {
+                    document.getElementById('set_en').value = d.en || ''; document.getElementById('set_ar').value = d.ar || '';
+                    document.getElementById('set_trn').value = d.trn || ''; document.getElementById('set_addr').value = d.addr || '';
+                    document.getElementById('set_ph').value = d.ph || ''; document.getElementById('set_mob').value = d.mob || '';
+                    document.getElementById('set_logo_text').value = d.logoTxt || ''; 
+                    logoImg = d.logoImg || ""; waterImg = d.waterImg || "";
+                    document.getElementById('set_t_ar').value = d.t_ar || ''; document.getElementById('set_t_en').value = d.t_en || '';
+                    document.getElementById('clr_main').value = d.c1 || '#c5a021'; document.getElementById('clr_text').value = d.c2 || '#1a1a1a';
+                    document.getElementById('clr_bg').value = d.c3 || '#f2f2f2'; document.getElementById('clr_head_txt').value = d.c4 || '#000000';
+                    document.getElementById('clr_border').value = d.c5 || '#000000';
+                    document.getElementById('out_en').innerText = d.en || ''; document.getElementById('out_ar').innerText = d.ar || '';
+                    document.getElementById('out_trn').innerText = d.trn || ''; document.getElementById('out_addr').innerText = d.addr || '';
+                    document.getElementById('out_ph').innerText = d.ph || ''; document.getElementById('out_mob').innerText = d.mob || '';
+                    document.getElementById('out_t_ar').innerText = d.t_ar ? "- " + d.t_ar : "";
+                    document.getElementById('out_t_en').innerText = d.t_en ? "- " + d.t_en : "";
+                    document.getElementById('watermark-display').src = waterImg;
+                    displayLogo(logoImg, d.logoTxt); liveColor();
+                }
+            });
         }
 
         function addItem() {
-            items.push({ desc: document.getElementById('p_desc').value, qty: document.getElementById('p_qty').value, price: document.getElementById('p_price').value });
-            render();
-            document.getElementById('p_desc').value=''; document.getElementById('p_price').value='';
-        }
-
-        function editRow(i) {
-            const it = items[i];
-            document.getElementById('p_desc').value = it.desc;
-            document.getElementById('p_qty').value = it.qty;
-            document.getElementById('p_price').value = it.price;
-            items.splice(i, 1);
-            render();
+            const desc = document.getElementById('p_desc').value, price = parseFloat(document.getElementById('p_price').value),
+                  qty = parseFloat(document.getElementById('p_qty').value), vat = parseFloat(document.getElementById('p_vat').value),
+                  code = document.getElementById('p_code').value;
+            if(!desc || isNaN(price)) return;
+            items.push({ desc, code: code || '-', qty, price, vatRate: vat });
+            render(); document.getElementById('p_desc').value = ''; document.getElementById('p_price').value = '';
         }
 
         function render() {
-            const eb = document.getElementById('edit_body'); const ob = document.getElementById('out_body');
-            eb.innerHTML = ''; ob.innerHTML = ''; let total = 0;
+            const pBody = document.getElementById('items_body'), eBody = document.getElementById('edit_body');
+            pBody.innerHTML = ''; eBody.innerHTML = ''; let sub = 0, vat = 0;
             items.forEach((it, i) => {
-                let rowTotal = it.qty * it.price; total += rowTotal;
-                eb.innerHTML += `<tr><td>${it.desc}</td><td>${it.qty}</td><td>${it.price}</td><td><button class="btn btn-edit-row" onclick="editRow(${i})">✏️</button><button class="btn btn-delete-row" onclick="items.splice(${i},1);render()">🗑️</button></td></tr>`;
-                ob.innerHTML += `<tr><td>${i+1}</td><td>${it.desc}</td><td>${it.qty}</td><td>${it.price}</td><td>${rowTotal.toFixed(2)}</td></tr>`;
+                const total = it.qty * it.price; const vAmt = total * it.vatRate; sub += total; vat += vAmt;
+                pBody.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmt).toFixed(2)}</td></tr>`;
+                eBody.innerHTML += `<tr><td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td><button class="btn btn-delete" onclick="items.splice(${i},1);render()">🗑️</button></td></tr>`;
             });
-            document.getElementById('total_val').innerText = total.toFixed(2);
-            sync();
+            document.getElementById('sub_val').innerText = sub.toFixed(2); document.getElementById('vat_val').innerText = vat.toFixed(2);
+            document.getElementById('net_val').innerText = (sub + vat).toFixed(2);
         }
 
-        function saveInv() {
-            const id = document.getElementById('in_no').value;
-            db.ref('invoices/' + id).set({ no:id, cust:document.getElementById('in_cust').value, cph:document.getElementById('in_cust_ph').value, items:items, total:document.getElementById('total_val').innerText }).then(()=>alert("تم الحفظ"));
+        function sync() {
+            document.getElementById('out_cust').innerText = document.getElementById('in_cust').value || '...';
+            document.getElementById('out_cust_ph').innerText = document.getElementById('in_cust_ph').value || '...';
+            document.getElementById('out_no_disp').innerText = document.getElementById('in_no').value;
+            document.getElementById('out_date_disp').innerText = document.getElementById('in_date').value;
+        }
+
+        function saveInvoice() {
+            const id = document.getElementById('in_no').value; if(items.length === 0) return;
+            db.ref('invoices/' + id).set({
+                no: id, cust: document.getElementById('in_cust').value, cph: document.getElementById('in_cust_ph').value,
+                date: document.getElementById('in_date').value, items: items, total: document.getElementById('net_val').innerText
+            }).then(() => alert("✅ تم الحفظ"));
+        }
+
+        db.ref('invoices').on('value', snap => {
+            allInvoices = snap.val() || {};
+            displayArchive(allInvoices);
+        });
+
+        function displayArchive(data) {
+            const body = document.getElementById('archive_body'); body.innerHTML = '';
+            Object.keys(data).reverse().forEach(id => {
+                const inv = data[id];
+                body.innerHTML += `<tr><td>${inv.no}</td><td>${inv.cust}</td><td>${inv.date}</td><td>${inv.total}</td>
+                <td>
+                    <button class="btn btn-add" style="padding:4px 8px" onclick="loadInv('${id}')">📄 عرض</button>
+                    <button class="btn btn-delete" onclick="deleteInv('${id}')">🗑️ حذف</button>
+                </td></tr>`;
+            });
+        }
+
+        function filterArchive() {
+            const val = document.getElementById('search_input').value.toLowerCase();
+            const filtered = {};
+            Object.keys(allInvoices).forEach(id => {
+                const inv = allInvoices[id];
+                if(inv.no.toString().includes(val) || (inv.cust && inv.cust.toLowerCase().includes(val))) {
+                    filtered[id] = inv;
+                }
+            });
+            displayArchive(filtered);
+        }
+
+        function loadInv(id) {
+            db.ref('invoices/' + id).once('value', s => {
+                const inv = s.val(); document.getElementById('in_no').value = inv.no; document.getElementById('in_cust').value = inv.cust;
+                document.getElementById('in_cust_ph').value = inv.cph; document.getElementById('in_date').value = inv.date;
+                items = inv.items || []; render(); sync();
+                window.scrollTo({ top: 400, behavior: 'smooth' });
+            });
+        }
+
+        function deleteInv(id) { if(confirm("حذف؟")) db.ref('invoices/' + id).remove(); }
+
+        // دالة تصدير الإكسيل المضافة
+        function exportToExcel() {
+            if (Object.keys(allInvoices).length === 0) {
+                alert("لا توجد فواتير لتصديرها!");
+                return;
+            }
+            const dataForExcel = [];
+            Object.keys(allInvoices).forEach(id => {
+                const inv = allInvoices[id];
+                if (inv.items && inv.items.length > 0) {
+                    inv.items.forEach(item => {
+                        dataForExcel.push({
+                            "رقم الفاتورة": inv.no,
+                            "اسم العميل": inv.cust,
+                            "هاتف العميل": inv.cph || '-',
+                            "التاريخ": inv.date,
+                            "كود الصنف": item.code,
+                            "وصف الصنف": item.desc,
+                            "الكمية": item.qty,
+                            "سعر الوحدة": item.price,
+                            "الضريبة": item.vatRate > 0 ? "5%" : "0%",
+                            "إجمالي الفاتورة النهائي": inv.total
+                        });
+                    });
+                }
+            });
+            const ws = XLSX.utils.json_to_sheet(dataForExcel);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "الفواتير");
+            XLSX.writeFile(wb, "DSE_Invoices_Report.xlsx");
         }
 
         window.onload = () => {
-            db.ref('profile').once('value', s => {
-                const d = s.val(); if(d){
-                    document.getElementById('set_en').value=d.en; document.getElementById('set_ar').value=d.ar; document.getElementById('set_trn').value=d.trn; document.getElementById('set_addr').value=d.addr; document.getElementById('set_ph').value=d.ph; document.getElementById('set_l_txt').value=d.ltxt;
-                    logo=d.logo; water=d.water; if(logo){ document.getElementById('out_logo').src=logo; document.getElementById('out_logo').style.display="block"; document.getElementById('out_l_txt').style.display="none"; } if(water) document.getElementById('out_water').src=water;
-                    sync();
-                }
-            });
+            loadProfile(); document.getElementById('in_date').valueAsDate = new Date();
             db.ref('invoices').limitToLast(1).once('value', s => {
                 let n = 1001; if(s.val()) n = parseInt(Object.keys(s.val())[0]) + 1;
                 document.getElementById('in_no').value = n; sync();
