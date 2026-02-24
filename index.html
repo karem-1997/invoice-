@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSE - Full Detail Cloud System</title>
+    <title>DSE - Final System with Edit & Portrait Print</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
@@ -55,7 +55,12 @@
         .archive-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .archive-table th, .archive-table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
 
-        @media print { .no-print { display: none !important; } .invoice-card { margin: 0; border: none; width: 100%; } }
+        /* تعديل الطباعة لتكون طولية */
+        @media print { 
+            @page { size: portrait; margin: 5mm; }
+            .no-print { display: none !important; } 
+            .invoice-card { margin: 0; border: none; width: 100%; } 
+        }
     </style>
 </head>
 <body>
@@ -105,7 +110,7 @@
 
         <div class="form-row" style="margin-top:20px; justify-content:center; gap:15px;">
             <button class="btn btn-save" onclick="saveToCloud()">☁️ حفظ في السحابة</button>
-            <button class="btn btn-print" onclick="window.print()">🖨️ طباعة</button>
+            <button class="btn btn-print" onclick="window.print()">🖨️ طباعة (طولي)</button>
             <button class="btn" style="background:#e67e22" onclick="newInvoice()">🔄 فاتورة جديدة</button>
         </div>
     </div>
@@ -121,9 +126,7 @@
                 <p><strong>TRN: <span id="out_trn">...</span></strong></p>
             </div>
         </div>
-
         <div class="inv-subject"><h2>TAX INVOICE / فاتورة ضريبية</h2></div>
-
         <div class="info-grid">
             <div class="info-left">
                 <strong>To / السيد:</strong> <span id="out_cust">...................</span><br>
@@ -134,14 +137,12 @@
                 <strong>Date:</strong> <span id="out_date_disp">...</span>
             </div>
         </div>
-
         <table class="print-table">
             <thead>
                 <tr><th>No.</th><th>Code</th><th>Description / الوصف</th><th>Qty</th><th>Price</th><th>Tax</th><th>Total</th></tr>
             </thead>
             <tbody id="items_body"></tbody>
         </table>
-
         <div class="footer-flex">
             <div class="terms-side">
                 <p><strong>Terms / الشروط:</strong></p>
@@ -219,7 +220,7 @@
             if(!desc || isNaN(price)) return;
             items.push({ desc, code: document.getElementById('p_code').value || '-', qty, price, vatRate: vat });
             renderAll();
-            document.getElementById('p_desc').value = ''; document.getElementById('p_price').value = '';
+            document.getElementById('p_desc').value = ''; document.getElementById('p_price').value = ''; document.getElementById('p_code').value = '';
         }
 
         function renderAll() {
@@ -232,23 +233,31 @@
                 const vAmount = total * it.vatRate;
                 sub += total; vat += vAmount;
                 pBody.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmount).toFixed(2)}</td></tr>`;
-                eBody.innerHTML += `<tr><td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.vatRate*100}%</td><td><button onclick="removeItem(${i})" style="background:red; border:none; padding:3px 8px; color:white; cursor:pointer">حذف</button></td></tr>`;
+                // زر التعديل الجديد الذي يرفع البيانات للخانات مرة أخرى
+                eBody.innerHTML += `<tr><td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.vatRate*100}%</td><td><button onclick="editItem(${i})" style="background:var(--blue); border:none; padding:3px 8px; color:white; cursor:pointer">تعديل</button></td></tr>`;
             });
             document.getElementById('sub_val').innerText = sub.toFixed(2);
             document.getElementById('vat_val').innerText = vat.toFixed(2);
             document.getElementById('net_val').innerText = (sub + vat).toFixed(2);
         }
 
-        function removeItem(i) { items.splice(i, 1); renderAll(); }
+        // وظيفة التعديل: ترفع البيانات وتحذف السطر القديم لإعادة إدخاله
+        function editItem(i) {
+            const it = items[i];
+            document.getElementById('p_desc').value = it.desc;
+            document.getElementById('p_code').value = it.code;
+            document.getElementById('p_qty').value = it.qty;
+            document.getElementById('p_price').value = it.price;
+            document.getElementById('p_vat').value = it.vatRate.toString();
+            items.splice(i, 1);
+            renderAll();
+        }
 
         function getNextNo() {
             db.ref('invoices').limitToLast(1).once('value', snap => {
                 const data = snap.val();
                 let nextNo = 1001;
-                if(data) {
-                    const lastId = Object.keys(data)[0];
-                    nextNo = parseInt(lastId) + 1;
-                }
+                if(data) { const lastId = Object.keys(data)[0]; nextNo = parseInt(lastId) + 1; }
                 document.getElementById('in_no').value = nextNo;
                 sync();
             });
@@ -264,10 +273,7 @@
             db.ref('invoices/' + id).set(data).then(() => alert("✅ تم الحفظ في السحابة"));
         }
 
-        db.ref('invoices').on('value', snap => {
-            allInvoices = snap.val() || {};
-            displayArchive(allInvoices);
-        });
+        db.ref('invoices').on('value', snap => { allInvoices = snap.val() || {}; displayArchive(allInvoices); });
 
         function displayArchive(data) {
             const body = document.getElementById('archive_body'); body.innerHTML = '';
@@ -284,38 +290,26 @@
             const filtered = {};
             for(let id in allInvoices) {
                 const inv = allInvoices[id];
-                if(inv.no.toString().includes(val) || (inv.cust && inv.cust.toLowerCase().includes(val))) {
-                    filtered[id] = inv;
-                }
+                if(inv.no.toString().includes(val) || (inv.cust && inv.cust.toLowerCase().includes(val))) { filtered[id] = inv; }
             }
             displayArchive(filtered);
         }
 
-        // التصدير التفصيلي لكل صنف (الإضافة المطلوبة)
         function exportDetailedExcel() {
             let detailedData = [];
             Object.values(allInvoices).forEach(inv => {
                 inv.items.forEach(item => {
                     const lineTotal = item.qty * item.price;
-                    const lineVat = lineTotal * item.vatRate;
                     detailedData.push({
-                        "رقم الفاتورة": inv.no,
-                        "التاريخ": inv.date,
-                        "اسم العميل": inv.cust,
-                        "هاتف العميل": inv.cph || "",
-                        "كود الصنف": item.code,
-                        "الوصف (الصنف)": item.desc,
-                        "الكمية": item.qty,
-                        "سعر الوحدة": item.price,
-                        "الضريبة (5%)": lineVat.toFixed(2),
-                        "الإجمالي (شامل الضريبة)": (lineTotal + lineVat).toFixed(2)
+                        "رقم الفاتورة": inv.no, "التاريخ": inv.date, "اسم العميل": inv.cust, "هاتف العميل": inv.cph || "",
+                        "كود الصنف": item.code, "الوصف": item.desc, "الكمية": item.qty, "السعر": item.price, "الإجمالي": (lineTotal * (1+item.vatRate)).toFixed(2)
                     });
                 });
             });
             const ws = XLSX.utils.json_to_sheet(detailedData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Detailed Report");
-            XLSX.writeFile(wb, `DSE_Detailed_Report_${new Date().toLocaleDateString()}.xlsx`);
+            XLSX.writeFile(wb, `DSE_Full_Report.xlsx`);
         }
 
         function loadInv(id) {
