@@ -40,8 +40,9 @@
         .btn-save { background: #3498db; }
         .btn-print { background: #000; }
         .btn-new { background: #e67e22; }
-        .btn-excel { background: #1f7244; } /* لون زر الإكسيل */
+        .btn-excel { background: #1f7244; }
         .btn-delete { background: #e74c3c; padding: 5px 10px; font-size: 11px; }
+        .btn-edit { background: #f39c12; padding: 5px 10px; font-size: 11px; margin-left: 4px; } /* زر التعديل */
         .btn-clear { background: #95a5a6; padding: 5px; font-size: 10px; margin-top: 5px; }
         .btn-settings { background: var(--main-color); width: 100%; margin-top: 10px; padding: 15px; }
 
@@ -307,13 +308,29 @@
             render(); document.getElementById('p_desc').value = ''; document.getElementById('p_price').value = '';
         }
 
+        // دالة التعديل المضافة
+        function editRow(i) {
+            const it = items[i];
+            document.getElementById('p_desc').value = it.desc;
+            document.getElementById('p_code').value = it.code;
+            document.getElementById('p_qty').value = it.qty;
+            document.getElementById('p_price').value = it.price;
+            document.getElementById('p_vat').value = it.vatRate;
+            items.splice(i, 1);
+            render();
+            window.scrollTo({ top: 350, behavior: 'smooth' }); // الصعود لخانة التعديل
+        }
+
         function render() {
             const pBody = document.getElementById('items_body'), eBody = document.getElementById('edit_body');
             pBody.innerHTML = ''; eBody.innerHTML = ''; let sub = 0, vat = 0;
             items.forEach((it, i) => {
                 const total = it.qty * it.price; const vAmt = total * it.vatRate; sub += total; vat += vAmt;
                 pBody.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmt).toFixed(2)}</td></tr>`;
-                eBody.innerHTML += `<tr><td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td><button class="btn btn-delete" onclick="items.splice(${i},1);render()">🗑️</button></td></tr>`;
+                eBody.innerHTML += `<tr><td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>
+                    <button class="btn btn-edit" onclick="editRow(${i})">✏️</button>
+                    <button class="btn btn-delete" onclick="items.splice(${i},1);render()">🗑️</button>
+                </td></tr>`;
             });
             document.getElementById('sub_val').innerText = sub.toFixed(2); document.getElementById('vat_val').innerText = vat.toFixed(2);
             document.getElementById('net_val').innerText = (sub + vat).toFixed(2);
@@ -374,7 +391,6 @@
 
         function deleteInv(id) { if(confirm("حذف؟")) db.ref('invoices/' + id).remove(); }
 
-        // دالة تصدير الإكسيل المضافة
         function exportToExcel() {
             if (Object.keys(allInvoices).length === 0) {
                 alert("لا توجد فواتير لتصديرها!");
