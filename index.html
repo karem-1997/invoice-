@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSE - Final System with Edit & Delete</title>
+    <title>DSE - Optimized Invoice Layout</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
@@ -12,6 +12,7 @@
         :root { --gold: #c5a021; --black: #1a1a1a; --danger: #e74c3c; --success: #28a745; --blue: #3498db; }
         body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 10px; background-color: #f0f2f5; font-size: 13px; }
         
+        /* الإدارة */
         .admin-panel { max-width: 1050px; margin: 10px auto; background: #fff; padding: 15px; border-radius: 12px; border-top: 4px solid var(--gold); box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h3 { margin-top:0; color:var(--gold); border-bottom: 1px solid #eee; padding-bottom: 5px; font-size: 1rem; }
         .form-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
@@ -29,28 +30,31 @@
         .edit-table th { background: #f8f9fa; border: 1px solid #ddd; padding: 8px; }
         .edit-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
 
-        .invoice-card { width: 210mm; min-height: 297mm; margin: 20px auto; background: #fff; padding: 10mm; box-sizing: border-box; border: 1px solid #eee; }
-        .inv-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--gold); padding-bottom: 10px; margin-bottom: 20px; }
-        .header-logo { flex: 1; font-size: 32px; font-weight: bold; color: var(--gold); text-align: right; }
-        .header-info { flex: 1; text-align: left; dir: ltr; line-height: 1.4; }
-        .header-info h1 { font-size: 16px; margin: 0; color: var(--black); }
-        .header-info p { font-size: 9px; margin: 1px 0; color: #444; }
+        /* تصميم الفاتورة - تقليل الفراغات العلوية */
+        .invoice-card { width: 210mm; min-height: 297mm; margin: 20px auto; background: #fff; padding: 5mm 10mm; box-sizing: border-box; border: 1px solid #eee; }
+        
+        .inv-header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--gold); padding-bottom: 5px; margin-bottom: 15px; margin-top: 0; }
+        
+        .header-logo { flex: 1; font-size: 38px; font-weight: bold; color: var(--gold); text-align: right; line-height: 1; padding-top: 5px; }
+        
+        .header-info { flex: 1.5; text-align: left; dir: ltr; }
+        .header-info h1 { font-size: 17px; margin: 0 0 2px 0; color: var(--black); line-height: 1.1; }
+        .header-info p { font-size: 9.5px; margin: 0 0 1px 0; color: #444; line-height: 1.2; }
 
-        .inv-subject { text-align: center; margin: 15px 0; }
-        .inv-subject h2 { border: 1.5px solid #000; display: inline-block; padding: 5px 40px; font-size: 16px; background: #fafafa; }
+        .inv-subject { text-align: center; margin: 10px 0; }
+        .inv-subject h2 { border: 1.5px solid #000; display: inline-block; padding: 3px 35px; font-size: 15px; background: #fafafa; margin: 0; }
 
-        .info-grid { display: flex; justify-content: space-between; margin-bottom: 15px; font-size: 12px; }
-        .print-table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 11px; }
-        .print-table th { background: #f2f2f2; border: 1px solid #000; padding: 8px; }
-        .print-table td { border: 1px solid #000; padding: 8px; text-align: center; }
+        .info-grid { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 12px; }
+        .print-table { width: 100%; border-collapse: collapse; margin-top: 5px; font-size: 11.5px; }
+        .print-table th { background: #f2f2f2; border: 1px solid #000; padding: 6px; }
+        .print-table td { border: 1px solid #000; padding: 6px; text-align: center; }
 
-        .footer-flex { display: flex; justify-content: space-between; margin-top: 25px; }
+        .footer-flex { display: flex; justify-content: space-between; margin-top: 20px; }
         .terms-side { width: 60%; font-size: 10px; }
         .totals-side { width: 35%; }
-        .row-total { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 1px solid #eee; }
+        .row-total { display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid #eee; }
 
         .search-container { display: flex; align-items: flex-end; gap: 10px; margin-bottom: 15px; background: #f9f9f9; padding: 10px; border-radius: 8px; border: 1px solid #ddd; }
-
         .archive-section { margin-top: 50px; border-top: 5px double var(--gold); padding-top: 20px; }
         .archive-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .archive-table th, .archive-table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
@@ -58,7 +62,7 @@
         @media print { 
             @page { size: portrait; margin: 5mm; }
             .no-print { display: none !important; } 
-            .invoice-card { margin: 0; border: none; width: 100%; } 
+            .invoice-card { margin: 0; border: none; width: 100%; padding-top: 0; } 
         }
     </style>
 </head>
@@ -109,7 +113,7 @@
 
         <div class="form-row" style="margin-top:20px; justify-content:center; gap:15px;">
             <button class="btn btn-save" onclick="saveToCloud()">☁️ حفظ في السحابة</button>
-            <button class="btn btn-print" onclick="window.print()">🖨️ طباعة (طولي)</button>
+            <button class="btn btn-print" onclick="window.print()">🖨️ طباعة</button>
             <button class="btn" style="background:#e67e22" onclick="newInvoice()">🔄 فاتورة جديدة</button>
         </div>
     </div>
@@ -232,7 +236,6 @@
                 const vAmount = total * it.vatRate;
                 sub += total; vat += vAmount;
                 pBody.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmount).toFixed(2)}</td></tr>`;
-                // عرض زري التعديل والحذف معاً
                 eBody.innerHTML += `<tr>
                     <td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.vatRate*100}%</td>
                     <td>
@@ -253,16 +256,10 @@
             document.getElementById('p_qty').value = it.qty;
             document.getElementById('p_price').value = it.price;
             document.getElementById('p_vat').value = it.vatRate.toString();
-            items.splice(i, 1);
-            renderAll();
+            items.splice(i, 1); renderAll();
         }
 
-        function removeItem(i) {
-            if(confirm("هل تريد حذف هذا السطر؟")) {
-                items.splice(i, 1);
-                renderAll();
-            }
-        }
+        function removeItem(i) { if(confirm("حذف هذا السطر؟")) { items.splice(i, 1); renderAll(); } }
 
         function getNextNo() {
             db.ref('invoices').limitToLast(1).once('value', snap => {
@@ -335,7 +332,7 @@
             });
         }
 
-        function deleteInv(id) { if(confirm("حذف الفاتورة من الأرشيف نهائياً؟")) db.ref('invoices/' + id).remove(); }
+        function deleteInv(id) { if(confirm("حذف نهائي؟")) db.ref('invoices/' + id).remove(); }
         function newInvoice() { location.reload(); }
 
         window.onload = () => { applyAll(); getNextNo(); document.getElementById('in_date').valueAsDate = new Date(); sync(); };
