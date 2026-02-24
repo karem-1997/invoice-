@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>DSE - Final System with Edit & Portrait Print</title>
+    <title>DSE - Final System with Edit & Delete</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.17.0/xlsx.full.min.js"></script>
@@ -55,7 +55,6 @@
         .archive-table { width: 100%; border-collapse: collapse; font-size: 12px; }
         .archive-table th, .archive-table td { border: 1px solid #ddd; padding: 10px; text-align: center; }
 
-        /* تعديل الطباعة لتكون طولية */
         @media print { 
             @page { size: portrait; margin: 5mm; }
             .no-print { display: none !important; } 
@@ -233,15 +232,20 @@
                 const vAmount = total * it.vatRate;
                 sub += total; vat += vAmount;
                 pBody.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmount).toFixed(2)}</td></tr>`;
-                // زر التعديل الجديد الذي يرفع البيانات للخانات مرة أخرى
-                eBody.innerHTML += `<tr><td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.vatRate*100}%</td><td><button onclick="editItem(${i})" style="background:var(--blue); border:none; padding:3px 8px; color:white; cursor:pointer">تعديل</button></td></tr>`;
+                // عرض زري التعديل والحذف معاً
+                eBody.innerHTML += `<tr>
+                    <td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>${it.vatRate*100}%</td>
+                    <td>
+                        <button onclick="editItem(${i})" style="background:var(--blue); border:none; padding:3px 8px; color:white; cursor:pointer; border-radius:3px;">تعديل</button>
+                        <button onclick="removeItem(${i})" style="background:var(--danger); border:none; padding:3px 8px; color:white; cursor:pointer; border-radius:3px;">حذف</button>
+                    </td>
+                </tr>`;
             });
             document.getElementById('sub_val').innerText = sub.toFixed(2);
             document.getElementById('vat_val').innerText = vat.toFixed(2);
             document.getElementById('net_val').innerText = (sub + vat).toFixed(2);
         }
 
-        // وظيفة التعديل: ترفع البيانات وتحذف السطر القديم لإعادة إدخاله
         function editItem(i) {
             const it = items[i];
             document.getElementById('p_desc').value = it.desc;
@@ -251,6 +255,13 @@
             document.getElementById('p_vat').value = it.vatRate.toString();
             items.splice(i, 1);
             renderAll();
+        }
+
+        function removeItem(i) {
+            if(confirm("هل تريد حذف هذا السطر؟")) {
+                items.splice(i, 1);
+                renderAll();
+            }
         }
 
         function getNextNo() {
@@ -324,7 +335,7 @@
             });
         }
 
-        function deleteInv(id) { if(confirm("حذف نهائي؟")) db.ref('invoices/' + id).remove(); }
+        function deleteInv(id) { if(confirm("حذف الفاتورة من الأرشيف نهائياً؟")) db.ref('invoices/' + id).remove(); }
         function newInvoice() { location.reload(); }
 
         window.onload = () => { applyAll(); getNextNo(); document.getElementById('in_date').valueAsDate = new Date(); sync(); };
