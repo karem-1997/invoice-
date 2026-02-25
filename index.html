@@ -128,7 +128,7 @@
         <div class="form-row">
             <div class="form-group"><label>اسم العميل</label><input type="text" id="in_cust" oninput="sync()"></div>
             <div class="form-group"><label>الهاتف</label><input type="text" id="in_cust_ph" oninput="sync()"></div>
-            <div class="form-group"><label>رقم الفاتورة</label><input type="text" id="in_no" readonly></div>
+            <div class="form-group"><label>رقم الفاتورة (يمكن تعديله)</label><input type="number" id="in_no" oninput="sync()"></div>
             <div class="form-group"><label>التاريخ</label><input type="date" id="in_date" oninput="sync()"></div>
         </div>
         <div class="form-row" style="background:#fcfcfc; padding:15px; border-radius:10px; border:1px solid #ddd;">
@@ -199,7 +199,7 @@
                 <div class="form-group" style="flex:0; min-width:350px; flex-direction:row; gap:5px; justify-content:flex-end; align-items:flex-end;">
                     <button class="btn btn-excel" onclick="exportToExcel()">📊 Excel</button>
                     <button class="btn btn-pdf-all" onclick="exportAllToPDF()">📥 تحميل الكل PDF</button>
-                    <button class="btn btn-delete-all" onclick="deleteAllInvoices()">🗑️ حذف الأرشيف</button>
+                    <button class="btn btn-delete-all" onclick="deleteAllInvoices()">🗑️ تنظيف الأرشيف (ترك الأخيرة)</button>
                 </div>
             </div>
             <table class="data-table">
@@ -313,7 +313,22 @@
             render(); document.getElementById('p_desc').value = ''; document.getElementById('p_price').value = '';
         }
 
-        function editRow(i) {
+        function render() {
+            const pBody = document.getElementById('items_body'), eBody = document.getElementById('edit_body');
+            pBody.innerHTML = ''; eBody.innerHTML = ''; let sub = 0, vat = 0;
+            items.forEach((it, i) => {
+                const total = it.qty * it.price; const vAmt = total * it.vatRate; sub += total; vat += vAmt;
+                pBody.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmt).toFixed(2)}</td></tr>`;
+                eBody.innerHTML += `<tr><td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>
+                    <button class="btn btn-edit" onclick="editItemRow(${i})">✏️</button>
+                    <button class="btn btn-delete" onclick="items.splice(${i},1);render()">🗑️</button>
+                </td></tr>`;
+            });
+            document.getElementById('sub_val').innerText = sub.toFixed(2); document.getElementById('vat_val').innerText = vat.toFixed(2);
+            document.getElementById('net_val').innerText = (sub + vat).toFixed(2);
+        }
+
+        function editItemRow(i) {
             const it = items[i];
             document.getElementById('p_desc').value = it.desc;
             document.getElementById('p_code').value = it.code;
@@ -323,21 +338,6 @@
             items.splice(i, 1);
             render();
             window.scrollTo({ top: 350, behavior: 'smooth' });
-        }
-
-        function render() {
-            const pBody = document.getElementById('items_body'), eBody = document.getElementById('edit_body');
-            pBody.innerHTML = ''; eBody.innerHTML = ''; let sub = 0, vat = 0;
-            items.forEach((it, i) => {
-                const total = it.qty * it.price; const vAmt = total * it.vatRate; sub += total; vat += vAmt;
-                pBody.innerHTML += `<tr><td>${i+1}</td><td>${it.code}</td><td style="text-align:right">${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmt).toFixed(2)}</td></tr>`;
-                eBody.innerHTML += `<tr><td>${it.desc}</td><td>${it.code}</td><td>${it.qty}</td><td>${it.price}</td><td>
-                    <button class="btn btn-edit" onclick="editRow(${i})">✏️</button>
-                    <button class="btn btn-delete" onclick="items.splice(${i},1);render()">🗑️</button>
-                </td></tr>`;
-            });
-            document.getElementById('sub_val').innerText = sub.toFixed(2); document.getElementById('vat_val').innerText = vat.toFixed(2);
-            document.getElementById('net_val').innerText = (sub + vat).toFixed(2);
         }
 
         function sync() {
@@ -352,7 +352,7 @@
             db.ref('invoices/' + id).set({
                 no: id, cust: document.getElementById('in_cust').value, cph: document.getElementById('in_cust_ph').value,
                 date: document.getElementById('in_date').value, items: items, total: document.getElementById('net_val').innerText
-            }).then(() => alert("✅ تم الحفظ"));
+            }).then(() => alert("✅ تم الحفظ / التحديث بنجاح"));
         }
 
         db.ref('invoices').on('value', snap => {
@@ -362,7 +362,7 @@
 
         function displayArchive(data) {
             const body = document.getElementById('archive_body'); body.innerHTML = '';
-            Object.keys(data).reverse().forEach(id => {
+            Object.keys(data).sort((a,b)=>b-a).forEach(id => {
                 const inv = data[id];
                 body.innerHTML += `<tr><td>${inv.no}</td><td>${inv.cust}</td><td>${inv.date}</td><td>${inv.total}</td>
                 <td>
@@ -396,8 +396,16 @@
         function deleteInv(id) { if(confirm("حذف؟")) db.ref('invoices/' + id).remove(); }
 
         function deleteAllInvoices() {
-            if(confirm("❗ تنبيه هام: حذف كافة الفواتير نهائياً؟")) {
-                db.ref('invoices').remove().then(() => alert("✅ تم تنظيف السحابة"));
+            const ids = Object.keys(allInvoices);
+            if (ids.length <= 1) { alert("الأرشيف يحتوي على فاتورة واحدة بالفعل أو فارغ."); return; }
+            
+            if(confirm("سيتم حذف جميع الفواتير ما عدا الأخيرة للحفاظ على تسلسل الأرقام. هل أنت متأكد؟")) {
+                const sortedIds = ids.sort((a, b) => parseInt(a) - parseInt(b));
+                const lastId = sortedIds[sortedIds.length - 1];
+                ids.forEach(id => {
+                    if (id !== lastId) { db.ref('invoices/' + id).remove(); }
+                });
+                alert("✅ تم تنظيف الأرشيف والإبقاء على الفاتورة رقم: " + lastId);
             }
         }
 
@@ -414,7 +422,6 @@
             XLSX.utils.book_append_sheet(wb, ws, "Archive"); XLSX.writeFile(wb, "Archive.xlsx");
         }
 
-        // تحسين دقيق لطباعة الأرشيف للحفاظ على التنسيق
         function exportAllToPDF() {
             const ids = Object.keys(allInvoices);
             if(ids.length === 0) { alert("الأرشيف فارغ!"); return; }
@@ -427,25 +434,17 @@
             let content = `
             <html>
             <head>
-                <title>Archive Print Report</title>
+                <title>DSE Archive Report</title>
                 <style>${stylesHtml}</style>
                 <style>
                     body { background: white !important; padding: 0 !important; }
-                    .invoice-card { 
-                        margin: 0 auto !important; 
-                        border: none !important; 
-                        box-shadow: none !important;
-                        page-break-after: always !important;
-                    }
-                    @media print {
-                        @page { margin: 0; }
-                        body { -webkit-print-color-adjust: exact; }
-                    }
+                    .invoice-card { margin: 0 auto !important; border: none !important; box-shadow: none !important; page-break-after: always !important; }
+                    @media print { @page { margin: 0; } body { -webkit-print-color-adjust: exact; } }
                 </style>
             </head>
             <body dir="rtl">`;
 
-            ids.reverse().forEach(id => {
+            ids.sort((a,b)=>a-b).forEach(id => {
                 const inv = allInvoices[id];
                 let rows = '';
                 let sub = 0, vat = 0;
@@ -495,9 +494,7 @@
             content += `
                 <script>
                     window.onload = function() {
-                        setTimeout(() => { 
-                            window.print(); 
-                        }, 1200);
+                        setTimeout(() => { window.print(); }, 1200);
                     };
                 <\/script>
             </body></html>`;
@@ -508,9 +505,16 @@
 
         window.onload = () => {
             loadProfile(); document.getElementById('in_date').valueAsDate = new Date();
-            db.ref('invoices').limitToLast(1).once('value', s => {
-                let n = 1001; if(s.val()) n = parseInt(Object.keys(s.val())[0]) + 1;
-                document.getElementById('in_no').value = n; sync();
+            db.ref('invoices').on('value', snap => {
+                const data = snap.val();
+                if(data) {
+                    const ids = Object.keys(data).map(x => parseInt(x));
+                    const maxId = Math.max(...ids);
+                    document.getElementById('in_no').value = maxId + 1;
+                } else {
+                    document.getElementById('in_no').value = 1001;
+                }
+                sync();
             });
         };
     </script>
