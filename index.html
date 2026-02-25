@@ -41,8 +41,10 @@
         .btn-print { background: #000; }
         .btn-new { background: #e67e22; }
         .btn-excel { background: #1f7244; }
+        .btn-pdf-all { background: #e74c3c; }
+        .btn-delete-all { background: #c0392b; margin-right: auto; }
         .btn-delete { background: #e74c3c; padding: 5px 10px; font-size: 11px; }
-        .btn-edit { background: #f39c12; padding: 5px 10px; font-size: 11px; margin-left: 4px; } /* زر التعديل */
+        .btn-edit { background: #f39c12; padding: 5px 10px; font-size: 11px; margin-left: 4px; }
         .btn-clear { background: #95a5a6; padding: 5px; font-size: 10px; margin-top: 5px; }
         .btn-settings { background: var(--main-color); width: 100%; margin-top: 10px; padding: 15px; }
 
@@ -72,7 +74,7 @@
         .footer-flex { display: flex; justify-content: space-between; margin-top: 40px; }
         .row-total { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #eee; }
 
-        @media print { .no-print { display: none !important; } .invoice-card { margin: 0; border: none; width: 100%; } }
+        @media print { .no-print { display: none !important; } .invoice-card { margin: 0; border: none; width: 100%; page-break-after: always; } }
     </style>
 </head>
 <body>
@@ -194,8 +196,10 @@
                     <label>بحث برقم الفاتورة أو اسم العميل</label>
                     <input type="text" id="search_input" onkeyup="filterArchive()" placeholder="اكتب هنا للبحث...">
                 </div>
-                <div class="form-group" style="flex:0; min-width:150px; justify-content:flex-end;">
-                    <button class="btn btn-excel" onclick="exportToExcel()">📊 تصدير Excel</button>
+                <div class="form-group" style="flex:0; min-width:350px; flex-direction:row; gap:5px; justify-content:flex-end; align-items:flex-end;">
+                    <button class="btn btn-excel" onclick="exportToExcel()">📊 Excel</button>
+                    <button class="btn btn-pdf-all" onclick="exportAllToPDF()">📥 تحميل الكل PDF</button>
+                    <button class="btn btn-delete-all" onclick="deleteAllInvoices()">🗑️ حذف الأرشيف</button>
                 </div>
             </div>
             <table class="data-table">
@@ -217,7 +221,7 @@
         };
         firebase.initializeApp(firebaseConfig); 
         const db = firebase.database();
-        let items = []; let logoImg = ""; let waterImg = ""; let allInvoices = {};
+        let items = []; let logoImg = ""; let waterImg = ""; let allInvoices = {}; let companyProfile = {};
 
         function toggleSection(cid, aid) {
             document.getElementById(cid).classList.toggle('active');
@@ -278,6 +282,7 @@
         function loadProfile() {
             db.ref('companyProfile').on('value', snap => {
                 const d = snap.val();
+                companyProfile = d || {};
                 if(d) {
                     document.getElementById('set_en').value = d.en || ''; document.getElementById('set_ar').value = d.ar || '';
                     document.getElementById('set_trn').value = d.trn || ''; document.getElementById('set_addr').value = d.addr || '';
@@ -308,7 +313,6 @@
             render(); document.getElementById('p_desc').value = ''; document.getElementById('p_price').value = '';
         }
 
-        // دالة التعديل المضافة
         function editRow(i) {
             const it = items[i];
             document.getElementById('p_desc').value = it.desc;
@@ -318,7 +322,7 @@
             document.getElementById('p_vat').value = it.vatRate;
             items.splice(i, 1);
             render();
-            window.scrollTo({ top: 350, behavior: 'smooth' }); // الصعود لخانة التعديل
+            window.scrollTo({ top: 350, behavior: 'smooth' });
         }
 
         function render() {
@@ -391,35 +395,115 @@
 
         function deleteInv(id) { if(confirm("حذف؟")) db.ref('invoices/' + id).remove(); }
 
-        function exportToExcel() {
-            if (Object.keys(allInvoices).length === 0) {
-                alert("لا توجد فواتير لتصديرها!");
-                return;
+        function deleteAllInvoices() {
+            if(confirm("❗ تنبيه هام: حذف كافة الفواتير نهائياً؟")) {
+                db.ref('invoices').remove().then(() => alert("✅ تم تنظيف السحابة"));
             }
-            const dataForExcel = [];
+        }
+
+        function exportToExcel() {
+            if (Object.keys(allInvoices).length === 0) { alert("لا توجد فواتير!"); return; }
+            const data = [];
             Object.keys(allInvoices).forEach(id => {
                 const inv = allInvoices[id];
-                if (inv.items && inv.items.length > 0) {
-                    inv.items.forEach(item => {
-                        dataForExcel.push({
-                            "رقم الفاتورة": inv.no,
-                            "اسم العميل": inv.cust,
-                            "هاتف العميل": inv.cph || '-',
-                            "التاريخ": inv.date,
-                            "كود الصنف": item.code,
-                            "وصف الصنف": item.desc,
-                            "الكمية": item.qty,
-                            "سعر الوحدة": item.price,
-                            "الضريبة": item.vatRate > 0 ? "5%" : "0%",
-                            "إجمالي الفاتورة النهائي": inv.total
-                        });
-                    });
-                }
+                inv.items.forEach(it => {
+                    data.push({ "رقم": inv.no, "العميل": inv.cust, "التاريخ": inv.date, "الصنف": it.desc, "السعر": it.price, "الإجمالي": inv.total });
+                });
             });
-            const ws = XLSX.utils.json_to_sheet(dataForExcel);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "الفواتير");
-            XLSX.writeFile(wb, "DSE_Invoices_Report.xlsx");
+            const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Archive"); XLSX.writeFile(wb, "Archive.xlsx");
+        }
+
+        // تحسين دقيق لطباعة الأرشيف للحفاظ على التنسيق
+        function exportAllToPDF() {
+            const ids = Object.keys(allInvoices);
+            if(ids.length === 0) { alert("الأرشيف فارغ!"); return; }
+
+            const printWindow = window.open('', '_blank');
+            const mainStyles = document.getElementsByTagName('style');
+            let stylesHtml = '';
+            for(let s of mainStyles) stylesHtml += s.innerHTML;
+
+            let content = `
+            <html>
+            <head>
+                <title>Archive Print Report</title>
+                <style>${stylesHtml}</style>
+                <style>
+                    body { background: white !important; padding: 0 !important; }
+                    .invoice-card { 
+                        margin: 0 auto !important; 
+                        border: none !important; 
+                        box-shadow: none !important;
+                        page-break-after: always !important;
+                    }
+                    @media print {
+                        @page { margin: 0; }
+                        body { -webkit-print-color-adjust: exact; }
+                    }
+                </style>
+            </head>
+            <body dir="rtl">`;
+
+            ids.reverse().forEach(id => {
+                const inv = allInvoices[id];
+                let rows = '';
+                let sub = 0, vat = 0;
+                inv.items.forEach((it, idx) => {
+                    const total = it.qty * it.price; const vAmt = total * (it.vatRate || 0); sub += total; vat += vAmt;
+                    rows += `<tr><td>${idx+1}</td><td>${it.code}</td><td>${it.desc}</td><td>${it.qty}</td><td>${it.price.toFixed(2)}</td><td>${it.vatRate>0?'5%':'0%'}</td><td>${(total+vAmt).toFixed(2)}</td></tr>`;
+                });
+
+                content += `
+                <div class="invoice-card">
+                    <img class="watermark-overlay" src="${companyProfile.waterImg || ''}" style="${!companyProfile.waterImg ? 'display:none' : ''}">
+                    <div class="inv-header">
+                        <div class="logo-container">
+                            <span class="header-logo-text" style="${companyProfile.logoImg ? 'display:none' : 'display:block'}">${companyProfile.logoTxt || 'DSE'}</span>
+                            <img src="${companyProfile.logoImg || ''}" style="${!companyProfile.logoImg ? 'display:none' : 'display:block'}; max-height:85px; max-width:220px; object-fit:contain;">
+                        </div>
+                        <div class="header-info">
+                            <h1>${companyProfile.en || ''}</h1><p>${companyProfile.ar || ''}</p>
+                            <p>${companyProfile.addr || ''}</p>
+                            <p>Tel: ${companyProfile.ph || ''} | Mob: ${companyProfile.mob || ''}</p>
+                            <p><strong>TRN: ${companyProfile.trn || ''}</strong></p>
+                        </div>
+                    </div>
+                    <div class="inv-subject"><h2>TAX INVOICE / فاتورة ضريبية</h2></div>
+                    <div style="display:flex; justify-content:space-between; margin-bottom:20px;">
+                        <div><strong>To:</strong> ${inv.cust}<br><strong>PH:</strong> ${inv.cph || '...'}</div>
+                        <div style="text-align:left" dir="ltr"><strong>Inv No:</strong> ${inv.no}<br><strong>Date:</strong> ${inv.date}</div>
+                    </div>
+                    <table class="print-table">
+                        <thead><tr><th>No.</th><th>Code</th><th>Description</th><th>Qty</th><th>Price</th><th>Tax</th><th>Total</th></tr></thead>
+                        <tbody>${rows}</tbody>
+                    </table>
+                    <div class="footer-flex">
+                        <div style="width:60%; font-size:11px;">
+                            <p><strong>Terms:</strong></p><p>- ${companyProfile.t_en || ''}</p><p>- ${companyProfile.t_ar || ''}</p>
+                            <br><span>Stamp & Signature: ________________</span>
+                        </div>
+                        <div style="width:35%">
+                            <div class="row-total"><span>Total</span> <span>${sub.toFixed(2)}</span></div>
+                            <div class="row-total"><span>VAT 5%</span> <span>${vat.toFixed(2)}</span></div>
+                            <div class="row-total" style="font-weight:bold; border-top:2px solid var(--border-color)"><span>Net Amount</span> <span>${inv.total}</span></div>
+                        </div>
+                    </div>
+                </div>`;
+            });
+
+            content += `
+                <script>
+                    window.onload = function() {
+                        setTimeout(() => { 
+                            window.print(); 
+                        }, 1200);
+                    };
+                <\/script>
+            </body></html>`;
+
+            printWindow.document.write(content);
+            printWindow.document.close();
         }
 
         window.onload = () => {
