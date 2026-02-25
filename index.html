@@ -410,16 +410,52 @@
         }
 
         function exportToExcel() {
-            if (Object.keys(allInvoices).length === 0) { alert("لا توجد فواتير!"); return; }
+            if (Object.keys(allInvoices).length === 0) { alert("لا توجد فواتير لتصديرها!"); return; }
             const data = [];
-            Object.keys(allInvoices).forEach(id => {
+            
+            // ترتيب الفواتير حسب الرقم قبل التصدير
+            const sortedIds = Object.keys(allInvoices).sort((a, b) => parseInt(a) - parseInt(b));
+
+            sortedIds.forEach(id => {
                 const inv = allInvoices[id];
-                inv.items.forEach(it => {
-                    data.push({ "رقم": inv.no, "العميل": inv.cust, "التاريخ": inv.date, "الصنف": it.desc, "السعر": it.price, "الإجمالي": inv.total });
+                inv.items.forEach((it, index) => {
+                    const subtotal = it.qty * it.price;
+                    const vatAmount = subtotal * (it.vatRate || 0);
+                    
+                    data.push({
+                        "رقم الفاتورة": inv.no,
+                        "التاريخ": inv.date,
+                        "اسم العميل": inv.cust,
+                        "هاتف العميل": inv.cph || '-',
+                        "م": index + 1,
+                        "كود الصنف": it.code,
+                        "الوصف": it.desc,
+                        "الكمية": it.qty,
+                        "سعر الوحدة": it.price,
+                        "الإجمالي قبل الضريبة": subtotal.toFixed(2),
+                        "نسبة الضريبة": it.vatRate > 0 ? "5%" : "0%",
+                        "قيمة الضريبة": vatAmount.toFixed(2),
+                        "إجمالي الصنف": (subtotal + vatAmount).toFixed(2),
+                        "إجمالي الفاتورة النهائي": index === 0 ? inv.total : "", // يظهر الإجمالي النهائي فقط في أول سطر للفاتورة لتجنب الخلط في الجمع
+                        "الشروط العربي": companyProfile.t_ar || '',
+                        "الشروط English": companyProfile.t_en || ''
+                    });
                 });
             });
-            const ws = XLSX.utils.json_to_sheet(data); const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Archive"); XLSX.writeFile(wb, "Archive.xlsx");
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Archive_Full_Data");
+            
+            // تحديد عرض الأعمدة تلقائياً بشكل تقريبي
+            const wscols = [
+                {wch:12}, {wch:12}, {wch:25}, {wch:15}, {wch:5}, 
+                {wch:12}, {wch:35}, {wch:8}, {wch:12}, {wch:15}, 
+                {wch:10}, {wch:12}, {wch:12}, {wch:15}, {wch:30}, {wch:30}
+            ];
+            ws['!cols'] = wscols;
+
+            XLSX.writeFile(wb, "DSE_System_Archive_" + new Date().toLocaleDateString() + ".xlsx");
         }
 
         function exportAllToPDF() {
@@ -510,7 +546,9 @@
                 if(data) {
                     const ids = Object.keys(data).map(x => parseInt(x));
                     const maxId = Math.max(...ids);
-                    document.getElementById('in_no').value = maxId + 1;
+                    if (!document.getElementById('in_no').value) {
+                         document.getElementById('in_no').value = maxId + 1;
+                    }
                 } else {
                     document.getElementById('in_no').value = 1001;
                 }
